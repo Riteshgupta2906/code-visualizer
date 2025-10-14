@@ -12,6 +12,8 @@ import {
   Share2,
   CheckCircle,
   Loader2,
+  Eye,
+  EyeClosed,
 } from "lucide-react";
 
 const FileNode = ({ data }) => {
@@ -41,21 +43,21 @@ const FileNode = ({ data }) => {
   };
 
   const getFileIcon = () => {
-    if (!data.fileAnalysis) return <File className="h-4 w-4 text-gray-400" />;
+    if (!data.fileAnalysis) return <File className="h-3 w-3 text-gray-400" />;
 
     switch (data.fileAnalysis.type) {
       case "page-file":
-        return <Globe className="h-4 w-4 text-green-400" />;
+        return <Globe className="h-3 w-3 text-green-400" />;
       case "layout-file":
-        return <Layers className="h-4 w-4 text-blue-400" />;
+        return <Layers className="h-3 w-3 text-blue-400" />;
       case "api-route-file":
-        return <Code className="h-4 w-4 text-purple-400" />;
+        return <Code className="h-3 w-3 text-purple-400" />;
       case "loading-file":
-        return <Zap className="h-4 w-4 text-yellow-400" />;
+        return <Zap className="h-3 w-3 text-yellow-400" />;
       case "error-file":
-        return <File className="h-4 w-4 text-red-400" />;
+        return <File className="h-3 w-3 text-red-400" />;
       default:
-        return <File className="h-4 w-4 text-gray-400" />;
+        return <File className="h-3 w-3 text-gray-400" />;
     }
   };
 
@@ -83,7 +85,17 @@ const FileNode = ({ data }) => {
   const handleAnalyzeClick = async (e) => {
     e.stopPropagation();
 
-    if (hasAnalyzedDeps || isAnalyzing) return;
+    // If already analyzed, toggle hide/show dependencies
+    if (hasAnalyzedDeps && !isAnalyzing) {
+      if (data.onAnalyzeDependencies) {
+        // Pass null to hide dependencies
+        data.onAnalyzeDependencies(data.nodeId, null);
+        setHasAnalyzedDeps(false);
+      }
+      return;
+    }
+
+    if (isAnalyzing) return;
 
     setIsAnalyzing(true);
 
@@ -119,31 +131,40 @@ const FileNode = ({ data }) => {
   return (
     <div className="relative">
       {/* Background gradient for dark glass effect */}
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-gray-700/15 via-gray-800/10 to-gray-900/15 blur-lg transform rotate-1"></div>
+      <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-gray-700/15 via-gray-800/10 to-gray-900/15 blur-lg transform rotate-1"></div>
 
-      {/* Tree structure handles */}
+      {/* LEFT HANDLE - Tree structure input */}
       <Handle
         type="target"
-        position={Position.Top}
-        id="top"
-        className="w-3 h-3 bg-blue-500/80 backdrop-blur-sm border border-blue-400/30"
+        position={Position.Left}
+        id="left"
+        className="w-2.5 h-2.5 bg-blue-500/80 backdrop-blur-sm border border-blue-400/30"
       />
 
-      {/* Custom dependency output handle */}
+      {/* RIGHT HANDLE - Tree structure output (positioned at top-right) */}
       <Handle
         type="source"
-        position={Position.Bottom}
-        id="dependency-out"
-        className="w-4 h-4 bg-purple-500/80 backdrop-blur-sm border-2 border-gray-800"
+        position={Position.Right}
+        id="right"
+        className="w-2.5 h-2.5 bg-blue-500/80 backdrop-blur-sm border border-blue-400/30"
         style={{
-          bottom: "-8px",
-          left: "50%",
-          transform: "translateX(-50%)",
+          top: "30%",
+        }}
+      />
+
+      {/* RIGHT HANDLE - Dependency output (positioned at bottom-right) */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="dependency-out"
+        className="w-3 h-3 bg-purple-500/80 backdrop-blur-sm border-2 border-gray-800"
+        style={{
+          top: "70%",
         }}
       />
 
       <Card
-        className={`file-node min-w-[220px] ${getFileColor()} relative z-10 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:bg-gray-700/40 rounded-xl overflow-hidden`}
+        className={`file-node min-w-[240px] max-w-[280px] ${getFileColor()} relative z-10 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:bg-gray-700/40 rounded-lg overflow-hidden`}
       >
         {/* Subtle animated background patterns */}
         <div className="absolute inset-0 overflow-hidden">
@@ -151,89 +172,58 @@ const FileNode = ({ data }) => {
           <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-gray-700/5 to-transparent rounded-full blur-lg"></div>
         </div>
 
-        <CardContent className="p-3 relative z-20">
-          <div className="flex items-center space-x-2 mb-2">
-            <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-gray-700/40 backdrop-blur-lg border border-gray-600/50 shadow-sm">
-              {getFileIcon()}
-            </div>
-            <div className="flex-1">
-              <div className="font-semibold text-sm truncate text-gray-100 drop-shadow-sm">
+        <CardContent className="py-1 px-3 relative z-20 space-y-0.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-1.5 flex-1 min-w-0">
+              <div className="flex items-center justify-center w-4 h-4 rounded-lg bg-gray-700/40 backdrop-blur-lg border border-gray-600/50 shadow-sm flex-shrink-0">
+                {getFileIcon()}
+              </div>
+              <div className="font-semibold text-xs truncate text-gray-100 drop-shadow-sm">
                 {data.name}
               </div>
+              {data.fileAnalysis && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 bg-gray-700/30 backdrop-blur-lg border-gray-600/40 text-gray-200 flex-shrink-0"
+                >
+                  {data.fileAnalysis.purpose}
+                </Badge>
+              )}
             </div>
-          </div>
-
-          {data.fileAnalysis && (
-            <div className="space-y-2">
-              <Badge
-                variant="outline"
-                className="text-xs bg-gray-700/30 backdrop-blur-lg border-gray-600/40 text-gray-200"
-              >
-                {data.fileAnalysis.purpose}
-              </Badge>
-
-              {data.fileAnalysis.apiMethods &&
-                data.fileAnalysis.apiMethods.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {data.fileAnalysis.apiMethods.map((method, index) => (
-                      <span
-                        key={index}
-                        className={`inline-block text-xs font-mono px-1.5 py-0.5 rounded backdrop-blur-sm border font-semibold ${getMethodBadgeColor(
-                          method
-                        )}`}
-                      >
-                        {method}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-              {/* <div className="text-xs text-gray-300 bg-gray-800/20 backdrop-blur-lg rounded-lg px-2 py-1 border border-gray-600/25">
-                {data.fileAnalysis.description}
-              </div> */}
-            </div>
-          )}
-
-          <div className="mt-3 text-right">
             <Button
               size="sm"
               variant="outline"
               onClick={handleAnalyzeClick}
-              disabled={isAnalyzing || hasAnalyzedDeps}
-              className="h-7 text-xs bg-gray-700/30 backdrop-blur-lg border-gray-600/40 text-gray-200 hover:bg-gray-600/40 hover:text-white transition-all duration-200"
+              disabled={isAnalyzing}
+              className="h-5 text-[10px] px-1.5 bg-gray-700/30 backdrop-blur-lg border-gray-600/40 text-gray-200 hover:bg-gray-600/40 hover:text-white transition-all duration-200 flex-shrink-0"
             >
               {isAnalyzing ? (
-                <>
-                  <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
-                  Analyzing...
-                </>
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
               ) : hasAnalyzedDeps ? (
-                <>
-                  <CheckCircle className="w-3 h-3 mr-1.5 text-green-400" />
-                  Analyzed
-                </>
+                <EyeClosed className="w-2.5 h-2.5 text-green-400" />
               ) : (
-                <>
-                  <Share2 className="w-3 h-3 mr-1.5" />
-                  Analyze Deps
-                </>
+                <Eye className="w-2.5 h-2.5" />
               )}
             </Button>
           </div>
+
+          {data.fileAnalysis?.apiMethods &&
+            data.fileAnalysis.apiMethods.length > 0 && (
+              <div className="flex flex-wrap gap-0.5">
+                {data.fileAnalysis.apiMethods.map((method, index) => (
+                  <span
+                    key={index}
+                    className={`inline-block text-[10px] font-mono px-1 py-0 rounded backdrop-blur-sm border font-semibold ${getMethodBadgeColor(
+                      method
+                    )}`}
+                  >
+                    {method}
+                  </span>
+                ))}
+              </div>
+            )}
         </CardContent>
       </Card>
-
-      {/* Tree structure handle */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
-        className="w-3 h-3 bg-blue-500/80 backdrop-blur-sm border border-blue-400/30"
-        style={{
-          bottom: "-6px",
-          right: "20px",
-        }}
-      />
     </div>
   );
 };

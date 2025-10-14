@@ -1,278 +1,3 @@
-// "use client";
-
-// import { useCallback, useMemo, useState, useEffect, useRef } from "react";
-// import {
-//   ReactFlow,
-//   Controls,
-//   Background,
-//   useNodesState,
-//   useEdgesState,
-//   MiniMap,
-// } from "@xyflow/react";
-// import { Badge } from "@/components/ui/badge";
-// import { Globe, Code, Route, Layers } from "lucide-react";
-
-// // Import our components
-// import DependencyNode from "./flow/DependencyNode";
-// import FolderNode from "./flow/FolderNode";
-// import FileNode from "./flow/fileNode";
-// import { ZoomSlider } from "@/components/zoom-slider"; // Import the new zoom slider
-
-// // Import utilities
-// import { buildTreeLayout, mergeDependencyNodes } from "./flow/utills";
-// import "@xyflow/react/dist/style.css";
-
-// export default function EnhancedTreeFlowComponent({ analysisData }) {
-//   // Core state
-//   const [expandedNodes, setExpandedNodes] = useState(new Set());
-//   const [dependencyAnalysisResults, setDependencyAnalysisResults] = useState(
-//     new Map()
-//   );
-//   const [currentZoom, setCurrentZoom] = useState(1);
-//   const reactFlowRef = useRef(null);
-//   console.log(analysisData);
-
-//   // Initialize with first layer expanded
-//   useEffect(() => {
-//     if (analysisData?.data?.structure?.children) {
-//       const firstLayerNodes = new Set();
-//       firstLayerNodes.add("root");
-
-//       analysisData.data.structure.children.forEach((child) => {
-//         if (child.type === "folder") {
-//           firstLayerNodes.add(`root-${child.name}`);
-//         }
-//       });
-
-//       setExpandedNodes(firstLayerNodes);
-//     }
-//   }, [analysisData]);
-
-//   // Toggle node expansion
-//   const toggleNode = useCallback((nodeId) => {
-//     setExpandedNodes((prev) => {
-//       const newSet = new Set(prev);
-//       if (newSet.has(nodeId)) {
-//         newSet.delete(nodeId);
-//       } else {
-//         newSet.add(nodeId);
-//       }
-//       return newSet;
-//     });
-//   }, []);
-
-//   // Handle zoom changes from the slider
-//   const handleZoomChange = useCallback((newZoom) => {
-//     if (reactFlowRef.current) {
-//       const reactFlowInstance = reactFlowRef.current;
-//       const currentViewport = reactFlowInstance.getViewport();
-//       reactFlowInstance.setViewport({
-//         ...currentViewport,
-//         zoom: newZoom,
-//       });
-//       setCurrentZoom(newZoom);
-//     }
-//   }, []);
-
-//   // Track zoom changes from other interactions (mouse wheel, etc.)
-//   const onViewportChange = useCallback((viewport) => {
-//     setCurrentZoom(viewport.zoom);
-//   }, []);
-//   // Handle dependency analysis results
-//   const handleDependencyAnalysis = useCallback((fileNodeId, dependencyData) => {
-//     console.log("Adding dependency analysis for:", fileNodeId);
-//     setDependencyAnalysisResults((prev) =>
-//       new Map(prev).set(fileNodeId, dependencyData.data)
-//     );
-//   }, []);
-
-//   // Calculate all nodes and edges
-//   const { allNodes, allEdges } = useMemo(() => {
-//     if (!analysisData?.data?.structure) {
-//       return { allNodes: [], allEdges: [] };
-//     }
-
-//     // Build base tree layout
-//     const { nodes: baseNodes, edges: baseEdges } = buildTreeLayout(
-//       analysisData.data.structure,
-//       expandedNodes,
-//       toggleNode,
-//       handleDependencyAnalysis
-//     );
-
-//     // Add dependency nodes if any exist
-//     const { dependencyNodes, dependencyEdges } = mergeDependencyNodes(
-//       baseNodes,
-//       dependencyAnalysisResults
-//     );
-
-//     return {
-//       allNodes: [...baseNodes, ...dependencyNodes],
-//       allEdges: [...baseEdges, ...dependencyEdges],
-//     };
-//   }, [
-//     analysisData,
-//     expandedNodes,
-//     dependencyAnalysisResults,
-//     toggleNode,
-//     handleDependencyAnalysis,
-//   ]);
-
-//   // ReactFlow state
-//   const [flowNodes, setNodes, onNodesChange] = useNodesState(allNodes);
-//   const [flowEdges, setEdges, onEdgesChange] = useEdgesState(allEdges);
-
-//   // Update ReactFlow when our calculated nodes change
-//   useEffect(() => {
-//     setNodes(allNodes);
-//     setEdges(allEdges);
-//   }, [allNodes, allEdges, setNodes, setEdges]);
-
-//   // Node types
-//   const nodeTypes = useMemo(
-//     () => ({
-//       folder: FolderNode,
-//       file: FileNode,
-//       dependency: DependencyNode,
-//     }),
-//     []
-//   );
-
-//   // Handle node clicks
-//   const onNodeClick = useCallback(
-//     (event, node) => {
-//       event.stopPropagation();
-//       if (node.type === "folder") {
-//         toggleNode(node.data.nodeId);
-//       }
-//     },
-//     [toggleNode]
-//   );
-
-//   // Early return for no data
-//   if (!analysisData?.data?.structure) {
-//     return (
-//       <div className="w-full h-full flex items-center justify-center bg-gray-900">
-//         <div className="text-center">
-//           <p className="text-gray-400">No project data available</p>
-//           <p className="text-sm text-gray-600">
-//             Upload a Next.js project to see the App Router structure
-//           </p>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   const insights = analysisData.data.insights;
-
-//   return (
-//     <div className="w-full h-full flex flex-col bg-gray-900">
-//       {/* Header */}
-//       <div className="bg-gray-900/95 backdrop-blur-sm shadow-2xl border-b border-gray-800">
-//         <div className="px-6 py-4">
-//           {/* Insights */}
-//           {insights && (
-//             <div className="flex flex-wrap gap-2">
-//               {insights.routeCount > 0 && (
-//                 <Badge className="bg-green-900/50 text-green-400 border-green-800 hover:bg-green-900/70">
-//                   <Globe className="w-3 h-3 mr-1" />
-//                   {insights.routeCount} Routes
-//                 </Badge>
-//               )}
-//               {insights.apiEndpointCount > 0 && (
-//                 <Badge className="bg-purple-900/50 text-purple-400 border-purple-800 hover:bg-purple-900/70">
-//                   <Code className="w-3 h-3 mr-1" />
-//                   {insights.apiEndpointCount} API Endpoints
-//                 </Badge>
-//               )}
-//               {insights.routePatterns.dynamic > 0 && (
-//                 <Badge className="bg-blue-900/50 text-blue-400 border-blue-800 hover:bg-blue-900/70">
-//                   <Route className="w-3 h-3 mr-1" />
-//                   {insights.routePatterns.dynamic} Dynamic Routes
-//                 </Badge>
-//               )}
-//               {insights.routePatterns.routeGroups > 0 && (
-//                 <Badge className="bg-indigo-900/50 text-indigo-400 border-indigo-800 hover:bg-indigo-900/70">
-//                   <Layers className="w-3 h-3 mr-1" />
-//                   {insights.routePatterns.routeGroups} Route Groups
-//                 </Badge>
-//               )}
-
-//               {/* Dependency analysis stats */}
-//               {dependencyAnalysisResults.size > 0 && (
-//                 <Badge className="bg-orange-900/50 text-orange-400 border-orange-800 hover:bg-orange-900/70">
-//                   <Code className="w-3 h-3 mr-1" />
-//                   {dependencyAnalysisResults.size} Files Analyzed
-//                 </Badge>
-//               )}
-//             </div>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* ReactFlow */}
-//       <div className="flex-1 relative">
-//         <ReactFlow
-//           ref={reactFlowRef}
-//           nodes={flowNodes}
-//           edges={flowEdges}
-//           onNodesChange={onNodesChange}
-//           onEdgesChange={onEdgesChange}
-//           onNodeClick={onNodeClick}
-//           onViewportChange={onViewportChange}
-//           nodeTypes={nodeTypes}
-//           fitView
-//           fitViewOptions={{ padding: 100 }}
-//           attributionPosition="top-right"
-//           className="bg-gray-900"
-//           minZoom={0.2}
-//           maxZoom={2}
-//         >
-//           {/* Zoom Slider */}
-//           <ZoomSlider
-//             position="top-left"
-//             // onZoomChange={handleZoomChange}
-//             // currentZoom={currentZoom}
-//             // minZoom={0.3}
-//             // maxZoom={2}
-//           />
-
-//           {/* MiniMap */}
-//           <MiniMap
-//             className="shadow-2xl border border-gray-700 rounded bg-gray-800"
-//             nodeStrokeWidth={2}
-//             maskColor="rgba(0, 0, 0, 0.3)"
-//             nodeColor={(node) => {
-//               switch (node.type) {
-//                 case "folder":
-//                   return "#3b82f6";
-//                 case "file":
-//                   return "#10b981";
-//                 case "dependency":
-//                   return "#8b5cf6";
-//                 default:
-//                   return "#6b7280";
-//               }
-//             }}
-//             style={{
-//               backgroundColor: "#1f2937",
-//             }}
-//           />
-//           <Background
-//             variant="dots"
-//             gap={20}
-//             size={1}
-//             color="#374151"
-//             style={{
-//               backgroundColor: "#111827",
-//             }}
-//           />
-//         </ReactFlow>
-//       </div>
-//     </div>
-//   );
-// }
-
 "use client";
 
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
@@ -282,6 +7,7 @@ import {
   useNodesState,
   useEdgesState,
   MiniMap,
+  useReactFlow,
 } from "@xyflow/react";
 
 // Import components
@@ -291,7 +17,11 @@ import FileNode from "./flow/fileNode";
 import { ZoomSlider } from "@/components/zoom-slider";
 
 // Import utilities
-import { buildTreeLayout, mergeDependencyNodes } from "./flow/utills";
+import {
+  buildTreeLayout,
+  mergeDependencyNodes,
+  createNodeId,
+} from "./flow/utills";
 import "@xyflow/react/dist/style.css";
 
 export default function EnhancedTreeFlowComponent({ analysisData }) {
@@ -301,7 +31,9 @@ export default function EnhancedTreeFlowComponent({ analysisData }) {
     new Map()
   );
   const [currentZoom, setCurrentZoom] = useState(1);
-  const reactFlowRef = useRef(null);
+  const [allExpanded, setAllExpanded] = useState(false);
+  const reactFlowInstance = useRef(null);
+  const hasInitialFitView = useRef(false);
 
   // Filter analysis data to show only root folder with app folder as child
   const filteredData = useMemo(() => {
@@ -326,7 +58,41 @@ export default function EnhancedTreeFlowComponent({ analysisData }) {
     };
   }, [analysisData]);
 
-  // Initialize with root and app expanded only
+  // Helper function to recursively collect all folder node IDs
+  const getAllFolderIds = useCallback(
+    (node, parentPath = "", isRoot = false) => {
+      const folderIds = new Set();
+
+      // Build the current path using the same logic as buildTreeLayout
+      let currentPath;
+      if (isRoot) {
+        currentPath = "root";
+      } else {
+        currentPath = `${parentPath}-${node.name}`;
+      }
+
+      // Use the same createNodeId function from utills to ensure consistency
+      const nodeId = createNodeId(currentPath);
+
+      if (node.type === "folder" || isRoot) {
+        folderIds.add(nodeId);
+
+        if (node.children && node.children.length > 0) {
+          node.children.forEach((child) => {
+            if (child.type === "folder") {
+              const childIds = getAllFolderIds(child, currentPath, false);
+              childIds.forEach((id) => folderIds.add(id));
+            }
+          });
+        }
+      }
+
+      return folderIds;
+    },
+    []
+  );
+
+  // Initialize with root and app expanded only (first two layers)
   useEffect(() => {
     if (filteredData?.data?.structure) {
       const firstLayerNodes = new Set();
@@ -338,6 +104,7 @@ export default function EnhancedTreeFlowComponent({ analysisData }) {
       firstLayerNodes.add("root-app");
 
       setExpandedNodes(firstLayerNodes);
+      setAllExpanded(false);
     }
   }, [filteredData]);
 
@@ -354,6 +121,60 @@ export default function EnhancedTreeFlowComponent({ analysisData }) {
     });
   }, []);
 
+  // Expand all folders
+  const expandAll = useCallback(() => {
+    if (filteredData?.data?.structure) {
+      const allFolderIds = new Set();
+
+      // Add root
+      allFolderIds.add("root");
+
+      // Recursively collect all folder IDs from the structure (treating root as special)
+      if (filteredData.data.structure.children) {
+        filteredData.data.structure.children.forEach((child) => {
+          const childIds = getAllFolderIds(child, "root", false);
+          childIds.forEach((id) => allFolderIds.add(id));
+        });
+      }
+
+      setExpandedNodes(allFolderIds);
+      setAllExpanded(true);
+
+      // Call fitView after expanding all nodes
+      if (reactFlowInstance.current) {
+        setTimeout(() => {
+          reactFlowInstance.current.fitView({
+            padding: 0.2,
+            duration: 300,
+            minZoom: 0.1,
+            maxZoom: 1.5,
+          });
+        }, 100);
+      }
+    }
+  }, [filteredData, getAllFolderIds]);
+
+  // Collapse all to initial state (first two layers)
+  const collapseAll = useCallback(() => {
+    const firstLayerNodes = new Set();
+    firstLayerNodes.add("root");
+    firstLayerNodes.add("root-app");
+    setExpandedNodes(firstLayerNodes);
+    setAllExpanded(false);
+
+    // Call fitView after collapsing
+    if (reactFlowInstance.current) {
+      setTimeout(() => {
+        reactFlowInstance.current.fitView({
+          padding: 0.2,
+          duration: 300,
+          minZoom: 0.1,
+          maxZoom: 1.5,
+        });
+      }, 100);
+    }
+  }, []);
+
   // Track zoom changes
   const onViewportChange = useCallback((viewport) => {
     setCurrentZoom(viewport.zoom);
@@ -361,10 +182,19 @@ export default function EnhancedTreeFlowComponent({ analysisData }) {
 
   // Handle dependency analysis
   const handleDependencyAnalysis = useCallback((fileNodeId, dependencyData) => {
-    console.log("Adding dependency analysis for:", fileNodeId);
-    setDependencyAnalysisResults((prev) =>
-      new Map(prev).set(fileNodeId, dependencyData.data)
-    );
+    setDependencyAnalysisResults((prev) => {
+      const newMap = new Map(prev);
+
+      // If dependencyData is null, remove the entry (hide dependencies)
+      if (dependencyData === null) {
+        newMap.delete(fileNodeId);
+      } else {
+        // Otherwise, add/update the dependency data
+        newMap.set(fileNodeId, dependencyData.data);
+      }
+
+      return newMap;
+    });
   }, []);
 
   // Calculate nodes and edges
@@ -401,10 +231,29 @@ export default function EnhancedTreeFlowComponent({ analysisData }) {
   const [flowNodes, setNodes, onNodesChange] = useNodesState(allNodes);
   const [flowEdges, setEdges, onEdgesChange] = useEdgesState(allEdges);
 
+  // Update nodes and edges when they change
   useEffect(() => {
     setNodes(allNodes);
     setEdges(allEdges);
   }, [allNodes, allEdges, setNodes, setEdges]);
+
+  // Handle ReactFlow initialization and call fitView only once
+  const onInit = useCallback((instance) => {
+    reactFlowInstance.current = instance;
+
+    // Call fitView only on initial render
+    if (!hasInitialFitView.current) {
+      setTimeout(() => {
+        instance.fitView({
+          padding: 0.2, // 20% padding
+          duration: 0, // No animation on initial render
+          minZoom: 0.1,
+          maxZoom: 1.5,
+        });
+        hasInitialFitView.current = true;
+      }, 50);
+    }
+  }, []);
 
   const nodeTypes = useMemo(
     () => ({
@@ -425,6 +274,19 @@ export default function EnhancedTreeFlowComponent({ analysisData }) {
     [toggleNode]
   );
 
+  // Default edge options for consistent styling
+  const defaultEdgeOptions = useMemo(
+    () => ({
+      type: "smoothstep",
+      animated: false,
+      style: {
+        strokeWidth: 2,
+        stroke: "#4B5563",
+      },
+    }),
+    []
+  );
+
   if (!analysisData?.data?.structure) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-900">
@@ -439,25 +301,35 @@ export default function EnhancedTreeFlowComponent({ analysisData }) {
   }
 
   return (
-    <div className="w-full h-full bg-gray-900">
+    <div className="w-full h-full bg-gray-900 relative">
       <ReactFlow
-        ref={reactFlowRef}
         nodes={flowNodes}
         edges={flowEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         onViewportChange={onViewportChange}
+        onInit={onInit}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
         fitView
-        fitViewOptions={{ padding: 100 }}
+        fitViewOptions={{
+          padding: 0.2,
+          minZoom: 0.1,
+          maxZoom: 1.5,
+        }}
         attributionPosition="top-right"
         className="bg-gray-900"
-        minZoom={0.2}
+        minZoom={0}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <ZoomSlider position="top-right" />
+        <ZoomSlider
+          position="top-right"
+          allExpanded={allExpanded}
+          onExpandAll={expandAll}
+          onCollapseAll={collapseAll}
+        />
         <MiniMap
           className="shadow-2xl border border-gray-700 rounded bg-gray-800"
           nodeStrokeWidth={2}

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import EnhancedTreeFlowComponent from "./_components/codeFlow";
-import { CustomSidebar } from "./_components/ProjectSideBar/sideBar";
+import CombinedSidebar from "./_components/ProjectSideBar/sideBar";
 import {
   Loader2,
   Home,
@@ -30,7 +30,7 @@ export default function AnalyzePage() {
   const [analysisData, setAnalysisData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Open by default
 
   useEffect(() => {
     if (projectPath) {
@@ -229,99 +229,29 @@ export default function AnalyzePage() {
 
   return (
     <div className="h-screen bg-black flex flex-col">
-      {/* Floating Transparent Header */}
-      <div className="fixed top-4 left-4 right-4 z-20 pointer-events-none">
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-gray-900/80 via-black/80 to-gray-900/80 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] shadow-gray-900/50 pointer-events-auto before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
-          <div className="px-4 py-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3 min-w-0 flex-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="text-gray-400 hover:text-gray-200 hover:bg-white/10"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
-                  <Globe className="w-4 h-4 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center space-x-3 mb-1">
-                    <h1 className="text-base font-bold text-white truncate">
-                      {projectStats.projectName}
-                    </h1>
-                    {projectStats.hasAppRouter && (
-                      <Badge className="bg-green-900/50 text-green-400 text-xs border-green-800 px-1.5 py-0.5">
-                        <Zap className="w-2.5 h-2.5 mr-1" />
-                        App Router
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-4 text-xs">
-                    <span className="text-gray-400 truncate max-w-xs">
-                      {projectPath}
-                    </span>
-                    <div className="flex items-center flex-wrap gap-2">
-                      <span className="flex items-center space-x-1 text-gray-400">
-                        <FileText className="w-3 h-3" />
-                        <span>{projectStats.totalFiles}</span>
-                      </span>
-                      <span className="flex items-center space-x-1 text-gray-400">
-                        <FolderOpen className="w-3 h-3" />
-                        <span>{projectStats.totalFolders}</span>
-                      </span>
-                      {projectStats.routeCount > 0 && (
-                        <Badge className="bg-green-900/50 text-green-400 text-xs border-green-800 px-1.5 py-0.5">
-                          <Globe className="w-2.5 h-2.5 mr-1" />
-                          {projectStats.routeCount} Routes
-                        </Badge>
-                      )}
-                      {projectStats.apiEndpoints > 0 && (
-                        <Badge className="bg-purple-900/50 text-purple-400 text-xs border-purple-800 px-1.5 py-0.5">
-                          <Code className="w-2.5 h-2.5 mr-1" />
-                          {projectStats.apiEndpoints} API
-                        </Badge>
-                      )}
-                      {projectStats.dynamicRoutes > 0 && (
-                        <Badge className="bg-blue-900/50 text-blue-400 text-xs border-blue-800 px-1.5 py-0.5">
-                          <Route className="w-2.5 h-2.5 mr-1" />
-                          {projectStats.dynamicRoutes} Dynamic
-                        </Badge>
-                      )}
-                      {projectStats.routeGroups > 0 && (
-                        <Badge className="bg-indigo-900/50 text-indigo-400 text-xs border-indigo-800 px-1.5 py-0.5">
-                          <Layers className="w-2.5 h-2.5 mr-1" />
-                          {projectStats.routeGroups} Groups
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                onClick={() => (window.location.href = "/")}
-                size="sm"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/25 ml-4"
-              >
-                <Home className="w-3.5 h-3.5 mr-1" />
-                Home
-              </Button>
-            </div>
-          </div>
+      {/* Toggle Button - Fixed position when sidebar is closed */}
+      {!sidebarOpen && (
+        <div className="fixed top-4 left-4 z-20">
+          <Button
+            onClick={() => setSidebarOpen(true)}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/25"
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
         </div>
-      </div>
+      )}
 
-      {/* Main Visualization Area with padding for floating header */}
-      <div className="flex-1 relative pt-20">
+      {/* Main Visualization Area */}
+      <div className="flex-1 relative">
         <EnhancedTreeFlowComponent analysisData={analysisData} />
 
-        {/* Custom Floating Sidebar */}
-        <CustomSidebar
+        {/* Combined Sidebar */}
+        <CombinedSidebar
           structure={analysisData.data.structure}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          projectStats={projectStats}
+          projectPath={projectPath}
         />
       </div>
     </div>

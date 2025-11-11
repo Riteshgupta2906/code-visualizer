@@ -1,22 +1,25 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
-  X,
   ChevronRight,
   ChevronDown,
-  ChevronLeft,
   Folder,
   FolderOpen,
   File,
   Home,
-  Globe,
-  FileText,
-  Code,
-  Route,
-  Layers,
-  Zap,
+  Maximize,
+  Minus,
+  Plus,
+  Maximize2,
+  Minimize2,
+  Menu,
+  GitBranch,
+  Database,
+  Network,
+  Info,
 } from "lucide-react";
+import { Panel, useViewport, useStore, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 
 function TreeNode({ node, level = 0 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,13 +41,13 @@ function TreeNode({ node, level = 0 }) {
   if (node.type === "file") {
     return (
       <div
-        className="flex items-center gap-2 px-2 py-1 text-xs text-white/80 hover:bg-white/10 rounded cursor-pointer transition-all duration-200"
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
+        className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 rounded cursor-pointer transition-all duration-200"
+        style={{ paddingLeft: `${level * 16 + 12}px` }}
       >
-        <div className="w-5 h-5 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-emerald-500/30">
-          <File className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+        <div className="w-4 h-4 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm rounded flex items-center justify-center border border-emerald-500/30">
+          <File className="h-2.5 w-2.5 text-emerald-400 flex-shrink-0" />
         </div>
-        <span className="truncate">{node.name}</span>
+        <span className="truncate text-xs">{node.name}</span>
       </div>
     );
   }
@@ -55,8 +58,8 @@ function TreeNode({ node, level = 0 }) {
     <div>
       <div
         onClick={() => hasChildren && setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-2 py-1 text-xs text-white/80 hover:bg-white/10 rounded cursor-pointer transition-all duration-200"
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
+        className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 rounded cursor-pointer transition-all duration-200"
+        style={{ paddingLeft: `${level * 16 + 12}px` }}
       >
         {hasChildren ? (
           isOpen ? (
@@ -67,14 +70,14 @@ function TreeNode({ node, level = 0 }) {
         ) : (
           <div className="w-3" />
         )}
-        <div className="w-5 h-5 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-blue-500/30">
+        <div className="w-4 h-4 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded flex items-center justify-center border border-blue-500/30">
           {isOpen ? (
-            <FolderOpen className="h-3 w-3 text-blue-400 flex-shrink-0" />
+            <FolderOpen className="h-2.5 w-2.5 text-blue-400 flex-shrink-0" />
           ) : (
-            <Folder className="h-3 w-3 text-blue-400 flex-shrink-0" />
+            <Folder className="h-2.5 w-2.5 text-blue-400 flex-shrink-0" />
           )}
         </div>
-        <span className="truncate">{node.name}</span>
+        <span className="truncate text-xs">{node.name}</span>
       </div>
 
       {isOpen && hasChildren && (
@@ -92,24 +95,34 @@ function TreeNode({ node, level = 0 }) {
   );
 }
 
-export default function CombinedSidebar({
+export default function FloatingTopBar({
   structure = { children: [] },
-  isOpen = true,
-  onClose = () => {},
-  projectStats = {
-    projectName: "My Project",
-    totalFiles: 42,
-    totalFolders: 12,
-    hasAppRouter: true,
-    routeCount: 8,
-    apiEndpoints: 5,
-    dynamicRoutes: 3,
-    routeGroups: 2,
-  },
   projectPath = "/home/user/projects/my-app",
+  allExpanded = false,
+  onExpandAll = () => {},
+  onCollapseAll = () => {},
+  currentView = "dependency",
+  onViewChange = () => {},
+  selectedSchema = null,
+  onSchemaSelect = () => {},
+  prismaInfo = null,
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState("info");
+  console.log("structure prop:", structure);
+  const [showBreadcrumbMenu, setShowBreadcrumbMenu] = useState(false);
+  const [showDirectory, setShowDirectory] = useState(false);
+  const [showLayoutMenu, setShowLayoutMenu] = useState(false);
+  const [showSchemaDropdown, setShowSchemaDropdown] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const breadcrumbRef = useRef(null);
+  const layoutRef = useRef(null);
+  const schemaRef = useRef(null);
+  const infoRef = useRef(null);
+
+  // ReactFlow hooks
+  const { zoom } = useViewport();
+  const { zoomTo, zoomIn, zoomOut, fitView } = useReactFlow();
+  const minZoom = useStore((state) => state.minZoom);
+  const maxZoom = useStore((state) => state.maxZoom);
 
   const filteredChildren = structure.children
     ? structure.children.filter(
@@ -133,312 +146,398 @@ export default function CombinedSidebar({
     ...structure,
     children: sortedRootChildren,
   };
+  //  console.log("Filtered Structure:", structure);
 
-  const toggleTab = (tab) => {
-    setActiveTab(activeTab === tab ? "" : tab);
-  };
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        breadcrumbRef.current &&
+        !breadcrumbRef.current.contains(event.target)
+      ) {
+        setShowBreadcrumbMenu(false);
+        setShowDirectory(false);
+      }
+      if (layoutRef.current && !layoutRef.current.contains(event.target)) {
+        setShowLayoutMenu(false);
+      }
+      if (schemaRef.current && !schemaRef.current.contains(event.target)) {
+        setShowSchemaDropdown(false);
+      }
+      if (infoRef.current && !infoRef.current.contains(event.target)) {
+        setShowInfo(false);
+      }
+    }
 
-  if (!isOpen) return null;
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const viewOptions = [
+    {
+      id: "dependency",
+      label: "Dependency",
+      icon: GitBranch,
+      description: "View dependencies between files",
+      enabled: true,
+    },
+    {
+      id: "schema",
+      label: "Schema",
+      icon: Database,
+      description: "View data schema structure",
+      enabled: prismaInfo?.detected || false,
+      badge: prismaInfo?.schemas?.length || 0,
+    },
+    {
+      id: "api",
+      label: "API View",
+      icon: Network,
+      description: "View API endpoints and routes",
+      enabled: false,
+    },
+  ];
+
+  const currentViewOption = viewOptions.find((v) => v.id === currentView);
+
+  // Get selected schema info
+  const selectedSchemaInfo = useMemo(() => {
+    if (!selectedSchema || !prismaInfo?.schemas) return null;
+    return prismaInfo.schemas.find((s) => s.filePath === selectedSchema);
+  }, [selectedSchema, prismaInfo]);
+
+  // Determine if schema dropdown should be shown
+  const showSchemaSelector =
+    currentView === "schema" &&
+    prismaInfo?.detected &&
+    prismaInfo.schemas.length > 0;
 
   return (
-    <div
-      className={`fixed left-4 top-4 bottom-4 z-50 pointer-events-none transition-all duration-300 ${
-        isCollapsed ? "w-14" : "w-72"
-      }`}
-    >
-      <div className="h-full rounded-2xl border border-white/20 backdrop-blur-xl bg-black/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] flex flex-col pointer-events-auto relative overflow-hidden">
-        {isCollapsed ? (
-          <div className="flex flex-col items-center gap-3 py-4 relative z-10 h-full">
-            <button
-              onClick={() => setIsCollapsed(false)}
-              className="text-white/60 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg p-2 transition-all duration-200"
-              title="Expand sidebar"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
+    <>
+      {/* Separate Breadcrumb - Top Left Corner */}
+      <Panel position="top-left" className="!m-0 !top-3 !left-3">
+        <div className="relative" ref={breadcrumbRef}>
+          <button
+            onClick={() => setShowBreadcrumbMenu(!showBreadcrumbMenu)}
+            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 backdrop-blur-xl bg-black/40 rounded-xl transition-all duration-200 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)]"
+          >
+            <Menu className="w-3.5 h-3.5" />
+            <ChevronDown
+              className={`w-3 h-3 transition-transform duration-200 ${
+                showBreadcrumbMenu ? "rotate-180" : ""
+              }`}
+            />
+          </button>
 
-            <div className="flex flex-col items-center gap-3 flex-1">
-              <button
-                onClick={() => {
-                  setIsCollapsed(false);
-                  setActiveTab("info");
-                }}
-                className={`group hover:bg-white/10 backdrop-blur-sm rounded-lg p-2 transition-all duration-200 ${
-                  activeTab === "info"
-                    ? "bg-white/20 shadow-lg border border-white/30"
-                    : ""
-                }`}
-                title="Project Info"
-              >
-                <div className="w-7 h-7 bg-gradient-to-br from-purple-500/30 to-pink-500/30 backdrop-blur-sm rounded-lg flex items-center justify-center border border-purple-500/40 group-hover:border-purple-400/60 transition-all duration-200">
-                  <FileText className="w-4 h-4 text-purple-300 group-hover:text-purple-200" />
-                </div>
-              </button>
+          {/* Breadcrumb Dropdown Menu */}
+          {showBreadcrumbMenu && (
+            <div className="absolute top-full left-0 mt-2 w-60 rounded-xl border border-white/20 backdrop-blur-xl bg-black/90 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] z-50">
+              <div className="p-2">
+                {/* Directory Structure Button */}
+                <button
+                  onClick={() => setShowDirectory(!showDirectory)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                >
+                  <Folder className="w-3.5 h-3.5" />
+                  <span>Directory Structure</span>
+                  <ChevronRight
+                    className={`w-3 h-3 ml-auto transition-transform duration-200 ${
+                      showDirectory ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
 
-              <button
-                onClick={() => {
-                  setIsCollapsed(false);
-                  setActiveTab("files");
-                }}
-                className={`group hover:bg-white/10 backdrop-blur-sm rounded-lg p-2 transition-all duration-200 ${
-                  activeTab === "files"
-                    ? "bg-white/20 shadow-lg border border-white/30"
-                    : ""
-                }`}
-                title="Directory"
-              >
-                <div className="w-7 h-7 bg-gradient-to-br from-blue-500/30 to-indigo-500/30 backdrop-blur-sm rounded-lg flex items-center justify-center border border-blue-500/40 group-hover:border-blue-400/60 transition-all duration-200">
-                  <Folder className="w-4 h-4 text-blue-300 group-hover:text-blue-200" />
-                </div>
-              </button>
-            </div>
-
-            <Button
-              onClick={() => (window.location.href = "/")}
-              size="sm"
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm shadow-lg text-white p-2 h-auto border border-white/20 group"
-              title="Go to Home"
-            >
-              <div className="w-7 h-7 bg-gradient-to-br from-amber-500/30 to-orange-500/30 backdrop-blur-sm rounded-lg flex items-center justify-center border border-amber-500/40 group-hover:border-amber-400/60 transition-all duration-200">
-                <Home className="w-4 h-4 text-amber-300 group-hover:text-amber-200" />
-              </div>
-            </Button>
-          </div>
-        ) : (
-          <>
-            {/* Expanded State - Header Section */}
-            <div className="px-3 py-3 border-b border-white/10 relative z-10 bg-black/30 backdrop-blur-sm">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <div className="w-7 h-7 bg-gradient-to-br from-cyan-500/30 to-blue-500/30 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0 border border-cyan-500/40 backdrop-blur-sm">
-                    <Code className="w-3.5 h-3.5 text-cyan-300" />
+                {/* Directory Tree */}
+                {showDirectory && (
+                  <div className="mt-2 ml-2 max-h-96 overflow-y-auto rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <div className="p-2">
+                      {filteredStructure.children &&
+                      filteredStructure.children.length > 0 ? (
+                        filteredStructure.children.map((child, idx) => (
+                          <TreeNode
+                            key={`${child.name}-${idx}`}
+                            node={child}
+                            level={0}
+                          />
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-500 px-3 py-2">
+                          No items to display
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <h1 className="text-sm font-bold text-white truncate">
-                    Code Visualizer
-                  </h1>
+                )}
+
+                {/* Divider */}
+                <div className="h-px bg-white/10 my-2" />
+
+                {/* Home Button */}
+                <button
+                  onClick={() => (window.location.href = "/")}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  <span>Home</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* Info Button - Top Right Corner */}
+      <Panel position="top-right" className="!m-0 !top-3 !right-3">
+        <div className="relative" ref={infoRef}>
+          <button
+            onClick={() => setShowInfo(!showInfo)}
+            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 backdrop-blur-xl bg-black/40 rounded-xl transition-all duration-200 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)]"
+          >
+            <Info className="w-3.5 h-3.5" />
+            <ChevronDown
+              className={`w-3 h-3 transition-transform duration-200 ${
+                showInfo ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {/* Info Dropdown Panel */}
+          {showInfo && (
+            <div className="absolute top-full right-0 mt-2 w-80 rounded-xl border border-white/20 backdrop-blur-xl bg-black/90 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] z-50">
+              <div className="p-4">
+                {/* Header */}
+                <div className="flex items-center gap-2 mb-3">
+                  <Info className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-sm font-semibold text-white">
+                    Page Information
+                  </h3>
                 </div>
-                <div className="flex items-center gap-1">
+
+                {/* Divider */}
+                <div className="h-px bg-white/10 mb-3" />
+
+                {/* Content Area - Empty for now */}
+                <div className="text-xs text-white/60 text-center py-6">
+                  Information will be displayed here
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* Main Top Bar - Top Center */}
+      <Panel position="top-center" className="!m-0 !top-3">
+        <div className="rounded-xl border border-white/20 backdrop-blur-xl bg-black/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] min-w-[700px]">
+          <div className="px-4 py-2 flex items-center justify-between gap-3">
+            {/* Left: Layout Dropdown + Schema Dropdown (conditionally) */}
+            <div className="flex items-center gap-2">
+              {/* Layout Dropdown */}
+              <div className="relative" ref={layoutRef}>
+                <button
+                  onClick={() => setShowLayoutMenu(!showLayoutMenu)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-200 border border-white/10"
+                >
+                  {currentViewOption && (
+                    <currentViewOption.icon className="w-3.5 h-3.5" />
+                  )}
+                  <span>Layout</span>
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform duration-200 ${
+                      showLayoutMenu ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Layout Dropdown Menu */}
+                {showLayoutMenu && (
+                  <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border border-white/20 backdrop-blur-xl bg-black/90 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] z-50">
+                    <div className="p-2">
+                      {viewOptions.map((option) => {
+                        const Icon = option.icon;
+                        const isActive = currentView === option.id;
+                        const isDisabled = !option.enabled;
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => {
+                              if (!isDisabled) {
+                                onViewChange(option.id);
+                                setShowLayoutMenu(false);
+                              }
+                            }}
+                            disabled={isDisabled}
+                            className={`w-full flex items-start gap-3 px-3 py-2.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                              isDisabled
+                                ? "opacity-50 cursor-not-allowed"
+                                : isActive
+                                ? "bg-white/15 text-white"
+                                : "text-white/80 hover:text-white hover:bg-white/10"
+                            }`}
+                          >
+                            <Icon
+                              className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                                isActive ? "text-cyan-400" : ""
+                              }`}
+                            />
+                            <div className="flex-1 text-left">
+                              <div className="font-semibold flex items-center gap-2">
+                                {option.label}
+                                {option.badge > 0 && (
+                                  <span className="px-1.5 py-0.5 text-[10px] bg-cyan-500/20 text-cyan-300 rounded">
+                                    {option.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-gray-400 mt-0.5">
+                                {option.description}
+                              </div>
+                            </div>
+                            {isActive && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Schema Dropdown - Only visible in schema view */}
+              {showSchemaSelector && (
+                <div className="relative" ref={schemaRef}>
                   <button
-                    onClick={() => setIsCollapsed(true)}
-                    className="text-white/60 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg p-1 transition-all duration-200"
-                    title="Collapse sidebar"
+                    onClick={() => setShowSchemaDropdown(!showSchemaDropdown)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-200 border border-white/10"
                   >
-                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <Database className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="max-w-[150px] truncate">
+                      {selectedSchemaInfo?.fileName || "Select schema..."}
+                    </span>
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform duration-200 ${
+                        showSchemaDropdown ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
+
+                  {/* Schema Dropdown Menu */}
+                  {showSchemaDropdown && (
+                    <div className="absolute top-full left-0 mt-2 w-80 rounded-xl border border-white/20 backdrop-blur-xl bg-black/90 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] z-50 max-h-96 overflow-y-auto">
+                      <div className="p-2">
+                        {prismaInfo.schemas.map((schema) => {
+                          const isSelected = selectedSchema === schema.filePath;
+                          return (
+                            <button
+                              key={schema.filePath}
+                              onClick={() => {
+                                onSchemaSelect(schema.filePath);
+                                setShowSchemaDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                                isSelected
+                                  ? "bg-cyan-500/20 text-white"
+                                  : "text-white/80 hover:text-white hover:bg-white/10"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold text-sm">
+                                  {schema.fileName}
+                                </span>
+                                {isSelected && (
+                                  <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                {schema.stats.models} models •{" "}
+                                {schema.stats.enums} enums •{" "}
+                                {schema.stats.relationships.total} relations
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Accordion Content area */}
-            <div className="flex-1 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-              {/* Project Info Accordion */}
-              <div className="border-b border-white/10">
-                <button
-                  onClick={() => toggleTab("info")}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between text-xs font-medium hover:bg-white/5 backdrop-blur-sm transition-all duration-200 ${
-                    activeTab === "info"
-                      ? "bg-white/15 text-white border-l-4 border-white shadow-sm"
-                      : "text-white/70"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-gradient-to-br from-purple-500/30 to-pink-500/30 backdrop-blur-sm rounded-md flex items-center justify-center border border-purple-500/40">
-                      <FileText className="w-3.5 h-3.5 text-purple-300" />
-                    </div>
-                    <span>Project Info</span>
-                  </div>
-                  {activeTab === "info" ? (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  )}
-                </button>
-
-                {activeTab === "info" && (
-                  <div className="px-3 py-3 space-y-3 bg-black/40 backdrop-blur-md border-t border-white/5">
-                    {/* Project Name */}
-                    <div>
-                      <h3 className="text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-1.5">
-                        Project Name
-                      </h3>
-                      <p className="text-sm text-white font-medium">
-                        {projectStats.projectName}
-                      </p>
-                    </div>
-
-                    {/* Project Path */}
-                    <div>
-                      <h3 className="text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-1.5">
-                        Path
-                      </h3>
-                      <p
-                        className="text-xs text-gray-400 break-all"
-                        title={projectPath}
-                      >
-                        {projectPath}
-                      </p>
-                    </div>
-
-                    {/* Statistics */}
-                    <div>
-                      <h3 className="text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-2">
-                        Statistics
-                      </h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-2 py-1.5 backdrop-blur-sm border border-white/10">
-                          <span className="text-gray-400 flex items-center gap-1.5">
-                            <div className="w-5 h-5 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-emerald-500/30">
-                              <FileText className="w-2.5 h-2.5 text-emerald-400" />
-                            </div>
-                            Total Files
-                          </span>
-                          <span className="text-white font-medium">
-                            {projectStats.totalFiles}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-2 py-1.5 backdrop-blur-sm border border-white/10">
-                          <span className="text-gray-400 flex items-center gap-1.5">
-                            <div className="w-5 h-5 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-blue-500/30">
-                              <Folder className="w-2.5 h-2.5 text-blue-400" />
-                            </div>
-                            Total Folders
-                          </span>
-                          <span className="text-white font-medium">
-                            {projectStats.totalFolders}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Features */}
-                    <div>
-                      <h3 className="text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-2">
-                        Features
-                      </h3>
-                      <div className="space-y-2">
-                        {projectStats.hasAppRouter && (
-                          <div className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-2 py-1.5 backdrop-blur-sm border border-white/10">
-                            <span className="text-gray-400 flex items-center gap-1.5">
-                              <div className="w-5 h-5 bg-gradient-to-br from-yellow-500/20 to-amber-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-yellow-500/30">
-                                <Zap className="w-2.5 h-2.5 text-yellow-400" />
-                              </div>
-                              App Router
-                            </span>
-                            <Badge className="bg-green-500/20 text-green-400 text-[9px] border-green-500/30 px-1.5 py-0 h-4 backdrop-blur-sm">
-                              Active
-                            </Badge>
-                          </div>
-                        )}
-                        {projectStats.routeCount > 0 && (
-                          <div className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-2 py-1.5 backdrop-blur-sm border border-white/10">
-                            <span className="text-gray-400 flex items-center gap-1.5">
-                              <div className="w-5 h-5 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-cyan-500/30">
-                                <Globe className="w-2.5 h-2.5 text-cyan-400" />
-                              </div>
-                              Routes
-                            </span>
-                            <span className="text-white font-medium">
-                              {projectStats.routeCount}
-                            </span>
-                          </div>
-                        )}
-                        {projectStats.apiEndpoints > 0 && (
-                          <div className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-2 py-1.5 backdrop-blur-sm border border-white/10">
-                            <span className="text-gray-400 flex items-center gap-1.5">
-                              <div className="w-5 h-5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-purple-500/30">
-                                <Code className="w-2.5 h-2.5 text-purple-400" />
-                              </div>
-                              API Endpoints
-                            </span>
-                            <span className="text-white font-medium">
-                              {projectStats.apiEndpoints}
-                            </span>
-                          </div>
-                        )}
-                        {projectStats.dynamicRoutes > 0 && (
-                          <div className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-2 py-1.5 backdrop-blur-sm border border-white/10">
-                            <span className="text-gray-400 flex items-center gap-1.5">
-                              <div className="w-5 h-5 bg-gradient-to-br from-rose-500/20 to-pink-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-rose-500/30">
-                                <Route className="w-2.5 h-2.5 text-rose-400" />
-                              </div>
-                              Dynamic Routes
-                            </span>
-                            <span className="text-white font-medium">
-                              {projectStats.dynamicRoutes}
-                            </span>
-                          </div>
-                        )}
-                        {projectStats.routeGroups > 0 && (
-                          <div className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-2 py-1.5 backdrop-blur-sm border border-white/10">
-                            <span className="text-gray-400 flex items-center gap-1.5">
-                              <div className="w-5 h-5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-indigo-500/30">
-                                <Layers className="w-2.5 h-2.5 text-indigo-400" />
-                              </div>
-                              Route Groups
-                            </span>
-                            <span className="text-white font-medium">
-                              {projectStats.routeGroups}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Directory Accordion */}
-              <div className="border-b border-white/10">
-                <button
-                  onClick={() => toggleTab("files")}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between text-xs font-medium hover:bg-white/5 backdrop-blur-sm transition-all duration-200 ${
-                    activeTab === "files"
-                      ? "bg-white/15 text-white border-l-4 border-white shadow-sm"
-                      : "text-white/70"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500/30 to-indigo-500/30 backdrop-blur-sm rounded-md flex items-center justify-center border border-blue-500/40">
-                      <Folder className="w-3.5 h-3.5 text-blue-300" />
-                    </div>
-                    <span>Directory</span>
-                  </div>
-                  {activeTab === "files" ? (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  )}
-                </button>
-
-                {activeTab === "files" && (
-                  <div className="px-1.5 py-1.5 bg-black/40 backdrop-blur-md border-t border-white/5">
-                    {filteredStructure.children.map((node, idx) => (
-                      <TreeNode key={`${node.name}-${idx}`} node={node} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Home Button - Fixed at bottom */}
-            <div className="p-3 border-t border-white/10 relative z-10 bg-black/30 backdrop-blur-sm">
+            {/* Right: Zoom Controls + View-specific controls */}
+            <div className="flex items-center gap-1.5">
               <Button
-                onClick={() => (window.location.href = "/")}
-                size="sm"
-                className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-sm shadow-lg h-8 text-xs border border-white/20 text-white group"
+                variant="ghost"
+                size="icon"
+                onClick={() => zoomOut({ duration: 300 })}
+                className="h-7 w-7 text-white/60 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-200"
               >
-                <div className="w-5 h-5 bg-gradient-to-br from-amber-500/30 to-orange-500/30 backdrop-blur-sm rounded-md flex items-center justify-center border border-amber-500/40 mr-1.5 group-hover:border-amber-400/60 transition-all duration-200">
-                  <Home className="w-3 h-3 text-amber-300 group-hover:text-amber-200" />
-                </div>
-                Home
+                <Minus className="h-3.5 w-3.5" />
               </Button>
-            </div>
 
-            {/* Subtle bottom fade */}
-            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none z-20" />
-          </>
-        )}
-      </div>
-    </div>
+              <Slider
+                className="w-20"
+                value={[zoom]}
+                min={minZoom}
+                max={maxZoom}
+                step={0.01}
+                onValueChange={(values) => zoomTo(values[0])}
+              />
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => zoomIn({ duration: 300 })}
+                className="h-7 w-7 text-white/60 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-200"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+
+              <Button
+                className="min-w-12 h-7 tabular-nums text-xs text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-sm transition-all duration-200"
+                variant="ghost"
+                onClick={() => zoomTo(1, { duration: 300 })}
+              >
+                {(100 * zoom).toFixed(0)}%
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fitView({ duration: 300 })}
+                className="h-7 w-7 text-white/60 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-200"
+              >
+                <Maximize className="h-3.5 w-3.5" />
+              </Button>
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-white/20 mx-1" />
+
+              {/* Expand/Collapse All Button - Only for dependency view */}
+              {currentView === "dependency" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={allExpanded ? onCollapseAll : onExpandAll}
+                  className="h-7 px-2.5 text-xs text-white/80 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-200"
+                >
+                  {allExpanded ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5 mr-1.5" />
+                      Collapse
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
+                      Expand
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </Panel>
+    </>
   );
 }

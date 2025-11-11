@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 
 const FolderNode = ({ data }) => {
-  console.log("Folder Node", data);
   const isApiFolder = () => {
     return (
       data.name === "api" ||

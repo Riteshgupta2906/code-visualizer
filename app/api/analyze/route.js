@@ -22,6 +22,7 @@ export async function POST(request) {
       data: {
         structure: analysisResult.structure,
         insights: analysisResult.insights,
+        prismaInfo: analysisResult.prismaInfo, // 🆕 NEW!
         metadata: analysisResult.metadata,
       },
     });

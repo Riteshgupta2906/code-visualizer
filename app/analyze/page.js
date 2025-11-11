@@ -6,22 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import EnhancedTreeFlowComponent from "./_components/codeFlow";
-import CombinedSidebar from "./_components/ProjectSideBar/sideBar";
+import GraphContainer from "./_components/GraphContainer";
 import {
   Loader2,
   Home,
   RefreshCw,
   AlertTriangle,
-  FileText,
-  Globe,
   FolderOpen,
-  Code,
-  Route,
-  Layers,
   Activity,
-  Zap,
-  Menu,
 } from "lucide-react";
 
 export default function AnalyzePage() {
@@ -30,7 +22,6 @@ export default function AnalyzePage() {
   const [analysisData, setAnalysisData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Open by default
 
   useEffect(() => {
     if (projectPath) {
@@ -56,6 +47,7 @@ export default function AnalyzePage() {
       if (!response.ok) {
         throw new Error(data.error || "Analysis failed");
       }
+      console.log("Analysis Data:", data);
 
       setAnalysisData(data);
     } catch (err) {
@@ -229,27 +221,10 @@ export default function AnalyzePage() {
 
   return (
     <div className="h-screen bg-black flex flex-col">
-      {/* Toggle Button - Fixed position when sidebar is closed */}
-      {!sidebarOpen && (
-        <div className="fixed top-4 left-4 z-20">
-          <Button
-            onClick={() => setSidebarOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/25"
-          >
-            <Menu className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
       {/* Main Visualization Area */}
       <div className="flex-1 relative">
-        <EnhancedTreeFlowComponent analysisData={analysisData} />
-
-        {/* Combined Sidebar */}
-        <CombinedSidebar
-          structure={analysisData.data.structure}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
+        <GraphContainer
+          analysisData={analysisData}
           projectStats={projectStats}
           projectPath={projectPath}
         />

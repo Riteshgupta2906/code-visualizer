@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Refined Connection Handle
- * Clean glassmorphism with subtle animations
+ * Matching FloatingTopBar's glassmorphic design
  */
 export const ConnectionHandle = ({
   type = "source",
@@ -31,21 +31,20 @@ export const ConnectionHandle = ({
         className={cn(
           // Size and shape
           "w-3 h-3 rounded-full",
-          // Refined glass effect
-          "bg-gradient-to-br from-white/40 to-white/10",
-          // Subtle border
+          // Glassmorphic effect matching FloatingTopBar
+          "bg-gradient-to-br from-white/30 to-white/10",
+          // Border matching FloatingTopBar
           "border border-white/20",
           // Soft inner highlight
-          "shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.5)]",
+          "shadow-[inset_0_0.5px_0_0_rgba(255,255,255,0.4)]",
           // Elegant outer glow
-          "shadow-[0_0_8px_rgba(255,255,255,0.3),0_2px_6px_rgba(0,0,0,0.4)]",
+          "shadow-[0_0_8px_rgba(255,255,255,0.25),0_2px_6px_rgba(0,0,0,0.4)]",
           // Smooth hover effects
-          "hover:scale-110 hover:bg-gradient-to-br hover:from-white/60 hover:to-white/20",
-          "hover:shadow-[0_0_12px_rgba(255,255,255,0.5),0_2px_8px_rgba(0,0,0,0.5)]",
-          "hover:border-white/40",
+          "hover:scale-110 hover:bg-gradient-to-br hover:from-white/50 hover:to-white/20",
+          "hover:shadow-[0_0_12px_rgba(255,255,255,0.4),0_2px_8px_rgba(0,0,0,0.5)]",
+          "hover:border-white/30",
           // Smooth transitions
           "transition-all duration-200 ease-out"
-          // ✅ REMOVED: "!static !transform-none" - this was breaking handle positioning
         )}
       />
 
@@ -54,12 +53,12 @@ export const ConnectionHandle = ({
         <span
           className={cn(
             "text-xs font-medium",
-            "text-slate-400 group-hover:text-slate-200",
+            "text-white/60 group-hover:text-white/80",
             "whitespace-nowrap",
-            // Minimal glass backdrop
-            "px-2 py-0.5 rounded",
-            "bg-slate-900/60 backdrop-blur-sm",
-            "border border-slate-700/30",
+            // Minimal glass backdrop matching FloatingTopBar
+            "px-2 py-0.5 rounded-lg",
+            "bg-black/40 backdrop-blur-sm",
+            "border border-white/10",
             "transition-all duration-200",
             isSource ? "mr-1.5 text-right" : "ml-1.5 text-left"
           )}
@@ -73,7 +72,7 @@ export const ConnectionHandle = ({
 
 /**
  * Field with Handles (for relation and enum fields)
- * Clean design with subtle hover states
+ * Updated with FloatingTopBar color scheme
  */
 export const FieldWithHandle = ({
   id,
@@ -85,19 +84,19 @@ export const FieldWithHandle = ({
 }) => {
   const variantStyles = {
     relation: {
-      text: "text-slate-300",
-      border: "border-l-blue-400/40",
-      bg: "bg-blue-500/5 hover:bg-blue-500/10",
+      text: "text-white/80",
+      border: "border-l-cyan-400/40",
+      bg: "bg-cyan-500/10 hover:bg-cyan-500/15",
     },
     enum: {
-      text: "text-slate-300",
+      text: "text-white/80",
       border: "border-l-purple-400/40",
-      bg: "bg-purple-500/5 hover:bg-purple-500/10",
+      bg: "bg-purple-500/10 hover:bg-purple-500/15",
     },
     primary: {
-      text: "text-slate-200",
+      text: "text-white",
       border: "border-l-emerald-400/50",
-      bg: "bg-emerald-500/5 hover:bg-emerald-500/10",
+      bg: "bg-emerald-500/10 hover:bg-emerald-500/15",
     },
   };
 
@@ -115,7 +114,7 @@ export const FieldWithHandle = ({
         />
 
         {icon && (
-          <div className="flex-shrink-0 p-1.5 rounded bg-slate-800/50 border border-slate-700/50">
+          <div className="flex-shrink-0 p-1.5 rounded bg-white/5 border border-white/10">
             {icon}
           </div>
         )}
@@ -136,11 +135,11 @@ export const FieldWithHandle = ({
       <div className="flex items-center gap-2.5 flex-shrink-0">
         <span
           className={cn(
-            "text-xs font-mono px-2 py-0.5 rounded",
-            "text-slate-400 group-hover:text-slate-300",
-            // Clean type badge
-            "bg-slate-800/50 backdrop-blur-sm",
-            "border border-slate-700/30",
+            "text-xs font-mono px-2 py-0.5 rounded-lg",
+            "text-white/60 group-hover:text-white/80",
+            // Clean type badge matching FloatingTopBar
+            "bg-white/5 backdrop-blur-sm",
+            "border border-white/10",
             "transition-colors duration-200"
           )}
         >
@@ -160,7 +159,7 @@ export const FieldWithHandle = ({
 
 /**
  * Enhanced Schema Node Container
- * Premium glassmorphism with clean edges
+ * Matching FloatingTopBar's glassmorphic design with enhanced shadows
  */
 export const SchemaNodeContainer = ({ className, children }) => {
   return (
@@ -168,17 +167,18 @@ export const SchemaNodeContainer = ({ className, children }) => {
       className={cn(
         // Base structure
         "relative w-[320px] rounded-xl overflow-hidden",
-        // Refined glassmorphism
-        "backdrop-blur-xl bg-slate-900/60",
-        // Clean border with subtle glow
-        "border border-slate-700/50",
-        "shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.05)]",
+        // Glassmorphism matching FloatingTopBar
+        "backdrop-blur-xl bg-black/50",
+        // Border matching FloatingTopBar
+        "border border-white/25",
+        // Enhanced shadow for better visibility
+        "shadow-[0_8px_32px_0_rgba(0,0,0,0.6),0_4px_16px_0_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)]",
         // Elegant hover effects
-        "hover:border-slate-600/60",
-        "hover:shadow-[0_12px_48px_rgba(0,0,0,0.5),0_0_24px_rgba(255,255,255,0.08)]",
-        "hover:bg-slate-900/70",
+        "hover:border-white/30",
+        "hover:shadow-[0_16px_48px_0_rgba(0,0,0,0.7),0_8px_24px_0_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.15)]",
+        "hover:bg-black/60",
         // Smooth transitions
-        " transition-all duration-300 ease-out",
+        "transition-all duration-300 ease-out",
         // Subtle scale on hover
         "hover:scale-[1.01]",
         className
@@ -197,7 +197,7 @@ export const SchemaNodeContainer = ({ className, children }) => {
 
 /**
  * Enhanced Node Header
- * Clean gradient with glass overlay
+ * Matching FloatingTopBar gradient style
  */
 export const SchemaNodeHeader = ({
   children,
@@ -205,9 +205,8 @@ export const SchemaNodeHeader = ({
   className,
 }) => {
   const gradients = {
-    model:
-      "bg-gradient-to-br from-slate-800/80 via-slate-900/70 to-slate-950/80",
-    enum: "bg-gradient-to-br from-slate-700/80 via-slate-800/70 to-slate-900/80",
+    model: "bg-black/40",
+    enum: "bg-black/30",
   };
 
   return (
@@ -215,13 +214,13 @@ export const SchemaNodeHeader = ({
       className={cn(
         // Base styling
         "relative px-4 py-3.5",
-        // Gradient background
+        // Gradient background matching FloatingTopBar
         gradients[variant],
         // Glass effect
         "backdrop-blur-xl",
-        // Clean border
-        "border-b border-slate-700/40",
-        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]",
+        // Border matching FloatingTopBar
+        "border-b border-white/10",
+        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]",
         // Text styling
         "text-white font-semibold text-sm tracking-wide",
         className
@@ -247,7 +246,7 @@ export const SchemaNodeIcon = ({ children, className }) => {
         "p-2 rounded-lg",
         "bg-white/10 backdrop-blur-sm",
         "border border-white/10",
-        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]",
+        "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]",
         "flex items-center justify-center",
         "transition-transform duration-200",
         "group-hover:scale-105",
@@ -261,23 +260,28 @@ export const SchemaNodeIcon = ({ children, className }) => {
 
 /**
  * Enhanced Node Body
- * Clean scrollable area with refined styling
+ * Clean scrollable area with FloatingTopBar styling
  */
 export const SchemaNodeBody = ({ children, className }) => {
   return (
     <div
       className={cn(
-        // Clean dark background
-        "bg-slate-950/50 backdrop-blur-sm",
+        // Dark background matching FileCodeViewer
+        "bg-black/20 backdrop-blur-sm",
         // Scrollable with max height
-        " overflow-y-auto overflow-x-hidden",
-        // Custom scrollbar with minimal design
-        "scrollbar-thin scrollbar-track-slate-900/30 scrollbar-thumb-slate-700/60",
-        "hover:scrollbar-thumb-slate-600/80",
+        "overflow-y-auto overflow-x-hidden",
+        // Custom scrollbar matching FileCodeViewer
+        "scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20",
+        "hover:scrollbar-thumb-white/30",
         // Subtle inner shadow
         "shadow-[inset_0_1px_4px_rgba(0,0,0,0.2)]",
         className
       )}
+      style={{
+        // Custom scrollbar styles for browsers that support it
+        scrollbarWidth: "thin",
+        scrollbarColor: "rgba(255,255,255,0.2) rgba(255,255,255,0.05)",
+      }}
     >
       {children}
     </div>
@@ -286,7 +290,7 @@ export const SchemaNodeBody = ({ children, className }) => {
 
 /**
  * Enhanced Field Row
- * Clean and minimal with subtle hover states
+ * Clean and minimal with FloatingTopBar color scheme
  */
 export const SchemaFieldRow = ({
   children,
@@ -294,12 +298,12 @@ export const SchemaFieldRow = ({
   className,
 }) => {
   const variants = {
-    default: "hover:bg-slate-800/30",
+    default: "hover:bg-white/10",
     relation:
-      "bg-blue-500/5 hover:bg-blue-500/10 border-l-2 border-l-blue-400/40 hover:border-l-blue-400/60",
-    enum: "bg-purple-500/5 hover:bg-purple-500/10 border-l-2 border-l-purple-400/40 hover:border-l-purple-400/60",
+      "bg-cyan-500/10 hover:bg-cyan-500/15 border-l-2 border-l-cyan-400/40 hover:border-l-cyan-400/60",
+    enum: "bg-purple-500/10 hover:bg-purple-500/15 border-l-2 border-l-purple-400/40 hover:border-l-purple-400/60",
     primary:
-      "bg-emerald-500/5 hover:bg-emerald-500/10 border-l-2 border-l-emerald-400/50 hover:border-l-emerald-400/70",
+      "bg-emerald-500/10 hover:bg-emerald-500/15 border-l-2 border-l-emerald-400/50 hover:border-l-emerald-400/70",
   };
 
   return (
@@ -308,8 +312,8 @@ export const SchemaFieldRow = ({
         // Base layout
         "flex items-center justify-between",
         "px-4 py-2.5",
-        // Border
-        "border-b border-slate-800/50 last:border-b-0",
+        // Border matching FloatingTopBar
+        "border-b border-white/5 last:border-b-0",
         // Variant styling
         variants[variant],
         // Smooth transitions
@@ -329,13 +333,13 @@ export const SchemaFieldName = ({ children, icon, className }) => {
   return (
     <div className={cn("flex items-center gap-2.5 flex-1 min-w-0", className)}>
       {icon && (
-        <div className="flex-shrink-0 p-1.5 rounded bg-slate-800/50 border border-slate-700/50">
+        <div className="flex-shrink-0 p-1.5 rounded bg-white/5 border border-white/10">
           {icon}
         </div>
       )}
       <span
         className={cn(
-          "text-sm font-medium text-slate-300",
+          "text-sm font-medium text-white/80",
           "group-hover:text-white",
           "transition-colors duration-200 truncate"
         )}
@@ -353,11 +357,11 @@ export const SchemaFieldType = ({ children, className }) => {
   return (
     <span
       className={cn(
-        "text-xs font-mono px-2 py-0.5 rounded",
-        "text-slate-400 group-hover:text-slate-300",
-        // Clean badge effect
-        "bg-slate-800/50 backdrop-blur-sm",
-        "border border-slate-700/30",
+        "text-xs font-mono px-2 py-0.5 rounded-lg",
+        "text-white/60 group-hover:text-white/80",
+        // Clean badge effect matching FloatingTopBar
+        "bg-white/5 backdrop-blur-sm",
+        "border border-white/10",
         "transition-colors duration-200 text-right ml-2 flex-shrink-0",
         className
       )}
@@ -369,18 +373,18 @@ export const SchemaFieldType = ({ children, className }) => {
 
 /**
  * Enhanced Node Footer
- * Clean footer with subtle glass effect
+ * Clean footer matching FloatingTopBar
  */
 export const SchemaNodeFooter = ({ children, className }) => {
   return (
     <div
       className={cn(
         // Glass background
-        "bg-slate-950/60 backdrop-blur-sm",
+        "bg-black/30 backdrop-blur-sm",
         // Padding
         "px-4 py-3",
-        // Clean border
-        "border-t border-slate-700/40",
+        // Border matching FloatingTopBar
+        "border-t border-white/10",
         "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]",
         className
       )}
@@ -415,21 +419,21 @@ export const SchemaNodeStat = ({
   className,
 }) => {
   const variants = {
-    default: "text-slate-400 border-slate-700/40",
-    primary: "text-slate-300 border-slate-600/50",
-    accent: "text-slate-200 border-slate-500/60",
+    default: "text-white/60 border-white/10",
+    primary: "text-white/80 border-white/15",
+    accent: "text-white border-white/20",
   };
 
   return (
     <span
       className={cn(
         "flex items-center gap-2",
-        "px-2.5 py-1 rounded-md",
-        "bg-slate-900/40 backdrop-blur-sm",
+        "px-2.5 py-1 rounded-lg",
+        "bg-white/5 backdrop-blur-sm",
         "border",
         variants[variant],
         "transition-all duration-200",
-        "hover:border-slate-600/60 hover:bg-slate-900/60",
+        "hover:border-white/20 hover:bg-white/10",
         className
       )}
     >
@@ -440,12 +444,12 @@ export const SchemaNodeStat = ({
 
 /**
  * Enhanced Animated Dot Indicator
- * Refined with cleaner colors
+ * Refined with FloatingTopBar colors
  */
-export const StatusDot = ({ animated = false, color = "slate", className }) => {
+export const StatusDot = ({ animated = false, color = "white", className }) => {
   const colors = {
-    slate: "bg-slate-400 shadow-[0_0_6px_rgba(148,163,184,0.4)]",
-    blue: "bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]",
+    white: "bg-white/60 shadow-[0_0_6px_rgba(255,255,255,0.4)]",
+    cyan: "bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]",
     purple: "bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.5)]",
     emerald: "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]",
     amber: "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]",
@@ -473,18 +477,18 @@ export const SchemaFieldDivider = ({ label, className }) => {
     <div
       className={cn(
         "flex items-center gap-3 px-4 py-2",
-        "bg-slate-900/40 backdrop-blur-sm",
-        "border-y border-slate-800/50",
+        "bg-white/5 backdrop-blur-sm",
+        "border-y border-white/10",
         className
       )}
     >
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
       {label && (
-        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
           {label}
         </span>
       )}
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
     </div>
   );
 };
@@ -494,10 +498,10 @@ export const SchemaFieldDivider = ({ label, className }) => {
  */
 export const FieldBadge = ({ children, variant = "default", className }) => {
   const variants = {
-    default: "bg-slate-700/40 text-slate-400 border-slate-600/40",
-    primary: "bg-blue-500/10 text-blue-400 border-blue-500/30",
-    warning: "bg-amber-500/10 text-amber-400 border-amber-500/30",
-    success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    default: "bg-white/10 text-white/60 border-white/20",
+    primary: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+    warning: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    success: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
   };
 
   return (

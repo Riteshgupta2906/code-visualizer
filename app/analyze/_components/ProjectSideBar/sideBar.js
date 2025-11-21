@@ -107,7 +107,7 @@ export default function FloatingTopBar({
   onSchemaSelect = () => {},
   prismaInfo = null,
 }) {
-  console.log("structure prop:", structure);
+  //  console.log("structure prop:", structure);
   const [showBreadcrumbMenu, setShowBreadcrumbMenu] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);

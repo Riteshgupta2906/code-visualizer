@@ -49,6 +49,14 @@ export default function AnalyzePage() {
       }
       console.log("Analysis Data:", data);
 
+      // Store dependency map in session storage
+      if (data?.data?.dependencyMap) {
+        sessionStorage.setItem(
+          "dependencyMap",
+          JSON.stringify(data.data.dependencyMap)
+        );
+      }
+
       setAnalysisData(data);
     } catch (err) {
       setError(err.message);
@@ -108,42 +116,47 @@ export default function AnalyzePage() {
 
   const projectStats = getProjectStats();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black flex items-center justify-center">
-        <Card className="w-full max-w-md shadow-2xl border border-gray-800 bg-gray-900/95 backdrop-blur-sm">
-          <CardContent className="p-8">
-            <div className="text-center space-y-4">
-              <div className="relative">
-                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-                  <Loader2 className="w-8 h-8 text-white animate-spin" />
-                </div>
-                <div className="absolute inset-0 w-16 h-16 mx-auto bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl animate-pulse opacity-20"></div>
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-white">
-                  Analyzing Next.js Project
-                </h2>
-                <p className="text-gray-400">
-                  Scanning App Router structure, API routes, and routing
-                  patterns...
-                </p>
-              </div>
-              <div className="flex justify-center">
-                <Badge
-                  variant="secondary"
-                  className="animate-pulse bg-gray-800 text-gray-300 border-gray-700"
-                >
-                  <Activity className="w-3 h-3 mr-1" />
-                  Detecting HTTP methods in route files
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+ if (loading) {
+  return (
+    <div className="min-h-screen bg-black relative overflow-hidden flex items-center justify-center">
+      {/* Ambient Background Gradient */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-900/20 blur-[120px] -z-10 rounded-full pointer-events-none" />
+
+      <div className="text-center space-y-8 relative z-10">
+        {/* Animated Logo/Icon */}
+        <div className="relative inline-flex">
+          {/* Main Glow Effect */}
+          <div className="absolute -inset-4 bg-blue-600/40 blur-[40px] rounded-full opacity-80"></div>
+          
+          <div className="relative w-20 h-20 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
+            <Loader2 className="w-10 h-10 text-white animate-spin" />
+          </div>
+        </div>
+
+        {/* Loading Text */}
+        <div className="space-y-3">
+          <h2 className="text-3xl font-bold text-white">
+            Analyzing Next.js Project
+          </h2>
+          <p className="text-gray-400 text-lg font-light max-w-md mx-auto">
+            Scanning App Router structure, API routes, and routing patterns...
+          </p>
+        </div>
+
+        {/* Status Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900/50 border border-gray-800 backdrop-blur-sm">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+          <span className="text-sm font-medium text-gray-400">
+            Detecting HTTP methods in route files
+          </span>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (

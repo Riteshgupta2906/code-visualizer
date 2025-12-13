@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 const DependencyNode = ({ data }) => {
+  console.log("DependencyNode data:", data);  
   const { dependencyInfo, isLocal, exists, name } = data;
 
   const getNodeColor = () => {
@@ -131,11 +132,19 @@ const DependencyNode = ({ data }) => {
       {/* Background gradient for dark glass effect */}
       <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-gray-700/15 via-gray-800/10 to-gray-900/15 blur-lg transform rotate-1"></div>
 
-      {/* LEFT HANDLE - Dependency input */}
+      {/* LEFT HANDLE - Dependency input (Target) */}
       <Handle
         type="target"
         position={Position.Left}
         id="dependency-in"
+        className="w-3 h-3 bg-purple-500/80 backdrop-blur-sm border-2 border-gray-800"
+      />
+
+      {/* RIGHT HANDLE - Dependency output (Source - for Reverse Deps) */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="dependency-out"
         className="w-3 h-3 bg-purple-500/80 backdrop-blur-sm border-2 border-gray-800"
       />
 

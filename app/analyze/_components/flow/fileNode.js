@@ -1,24 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect, memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   File,
   Globe,
   Code,
   Zap,
   Layers,
-  Share2,
-  CheckCircle,
+  ArrowLeft,
+  ArrowRight,
   Loader2,
-  Eye,
-  EyeClosed,
 } from "lucide-react";
 
 const FileNode = ({ data }) => {
+  // console.log("FileNode data:", data);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [hasAnalyzedDeps, setHasAnalyzedDeps] = useState(false);
+  const [activeModes, setActiveModes] = useState(
+    new Set(data.initialActiveModes || [])
+  );
+
+  // Sync state with props (for when global analysis loads)
+  useEffect(() => {
+    if (data.initialActiveModes) {
+      const newModes = new Set(data.initialActiveModes);
+      // Only update state if different to rely on React optimization
+      setActiveModes((prev) => {
+        if (
+          prev.size === newModes.size &&
+          [...newModes].every((m) => prev.has(m))
+        ) {
+          return prev;
+        }
+        return newModes;
+      });
+    }
+  }, [data.initialActiveModes]);
 
   const getFileColor = () => {
     if (!data.fileAnalysis)
@@ -82,15 +105,25 @@ const FileNode = ({ data }) => {
     }
   };
 
-  const handleAnalyzeClick = async (e) => {
+  const handleAnalyzeClick = async (e, mode) => {
     e.stopPropagation();
 
-    // If already analyzed, toggle hide/show dependencies
-    if (hasAnalyzedDeps && !isAnalyzing) {
+    // Toggle mode
+    const newModes = new Set(activeModes);
+    const isEnabling = !newModes.has(mode);
+
+    if (isEnabling) {
+      newModes.add(mode);
+    } else {
+      newModes.delete(mode);
+    }
+
+    setActiveModes(newModes);
+
+    // If disabling, just notify parent to hide
+    if (!isEnabling) {
       if (data.onAnalyzeDependencies) {
-        // Pass null to hide dependencies
-        data.onAnalyzeDependencies(data.nodeId, null);
-        setHasAnalyzedDeps(false);
+        data.onAnalyzeDependencies(data.nodeId, null, mode);
       }
       return;
     }
@@ -99,33 +132,11 @@ const FileNode = ({ data }) => {
 
     setIsAnalyzing(true);
 
-    try {
-      const response = await fetch("/api/analyze-dependencies", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          filePath: data.filePath,
-          projectRoot: data.projectRoot,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to analyze dependencies: ${response.status}`);
-      }
-
-      const dependencyData = await response.json();
-
-      if (data.onAnalyzeDependencies) {
-        data.onAnalyzeDependencies(data.nodeId, dependencyData);
-        setHasAnalyzedDeps(true);
-      }
-    } catch (error) {
-      console.error("Error analyzing dependencies:", error);
-    } finally {
-      setIsAnalyzing(false);
+    if (data.onAnalyzeDependencies) {
+      data.onAnalyzeDependencies(data.nodeId, data.filePath, mode);
     }
+
+    setIsAnalyzing(false);
   };
 
   return (
@@ -141,8 +152,8 @@ const FileNode = ({ data }) => {
         className="w-2.5 h-2.5 bg-blue-500/80 backdrop-blur-sm border border-blue-400/30"
       />
 
-      {/* RIGHT HANDLE - Tree structure output (positioned at top-right) */}
-      <Handle
+      {/* RIGHT HANDLE - Tree structure output */}
+      {/* <Handle
         type="source"
         position={Position.Right}
         id="right"
@@ -150,24 +161,24 @@ const FileNode = ({ data }) => {
         style={{
           top: "30%",
         }}
-      />
+      /> */}
 
-      {/* RIGHT HANDLE - Dependency output (positioned at bottom-right) */}
+      {/* RIGHT HANDLE - Dependency output */}
       <Handle
         type="source"
         position={Position.Right}
         id="dependency-out"
         className="w-3 h-3 bg-purple-500/80 backdrop-blur-sm border-2 border-gray-800"
-        style={{
-          top: "70%",
-        }}
+        // style={{
+        //   top: "70%",
+        // }}
       />
 
       <Card
-        className={`file-node min-w-[240px] max-w-[280px] ${getFileColor()} relative z-10 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:bg-gray-700/40 rounded-lg overflow-hidden`}
+        className={`file-node min-w-[240px] max-w-[280px] ${getFileColor()} relative z-10 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:bg-gray-700/40 rounded-lg`}
       >
-        {/* Subtle animated background patterns */}
-        <div className="absolute inset-0 overflow-hidden">
+        {/* Background blobs */}
+        <div className="absolute inset-0 overflow-hidden rounded-lg">
           <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-gray-600/5 to-transparent rounded-full blur-xl animate-pulse"></div>
           <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-gray-700/5 to-transparent rounded-full blur-lg"></div>
         </div>
@@ -190,21 +201,53 @@ const FileNode = ({ data }) => {
                 </Badge>
               )}
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleAnalyzeClick}
-              disabled={isAnalyzing}
-              className="h-5 text-[10px] px-1.5 bg-gray-700/30 backdrop-blur-lg border-gray-600/40 text-gray-200 hover:bg-gray-600/40 hover:text-white transition-all duration-200 flex-shrink-0"
-            >
-              {isAnalyzing ? (
-                <Loader2 className="w-2.5 h-2.5 animate-spin" />
-              ) : hasAnalyzedDeps ? (
-                <EyeClosed className="w-2.5 h-2.5 text-green-400" />
-              ) : (
-                <Eye className="w-2.5 h-2.5" />
-              )}
-            </Button>
+            
+            {/* ACTION BUTTONS (Vertical) */}
+            <div className="flex flex-col gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-5 w-5 rounded hover:bg-gray-600/50 transition-colors ${
+                      activeModes.has("outgoing") ? "text-blue-400 bg-blue-500/10" : "text-gray-400"
+                    }`}
+                    onClick={(e) => handleAnalyzeClick(e, "outgoing")}
+                  >
+                    {isAnalyzing && activeModes.has("outgoing") ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-gray-800 text-gray-200 border-gray-700 text-xs">
+                  <p>Show Imports</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-5 w-5 rounded hover:bg-gray-600/50 transition-colors ${
+                      activeModes.has("incoming") ? "text-purple-400 bg-purple-500/10" : "text-gray-400"
+                    }`}
+                    onClick={(e) => handleAnalyzeClick(e, "incoming")}
+                  >
+                    {isAnalyzing && activeModes.has("incoming") ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-gray-800 text-gray-200 border-gray-700 text-xs">
+                  <p>Show Usage</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
           {data.fileAnalysis?.apiMethods &&
@@ -228,4 +271,35 @@ const FileNode = ({ data }) => {
   );
 };
 
-export default FileNode;
+// Custom comparison function for React.memo
+function arePropsEqual(prevProps, nextProps) {
+  const prevData = prevProps.data;
+  const nextData = nextProps.data;
+
+  // Compare essential primitives
+  if (
+    prevData.nodeId !== nextData.nodeId ||
+    prevData.name !== nextData.name ||
+    prevData.filePath !== nextData.filePath ||
+    prevData.type !== nextData.type
+  ) {
+    return false;
+  }
+
+  // Deep compare initialActiveModes (they are usually new arrays)
+  const prevModes = prevData.initialActiveModes || [];
+  const nextModes = nextData.initialActiveModes || [];
+
+  if (prevModes.length !== nextModes.length) return false;
+
+  // Assuming sequence doesn't matter, but for simplicity we can just sort or check if every item is present
+  // But usually they come from push() orders. Checking every item is safer.
+  if (prevModes.length > 0) {
+    const prevSet = new Set(prevModes);
+    if (!nextModes.every((m) => prevSet.has(m))) return false;
+  }
+
+  return true;
+}
+
+export default memo(FileNode, arePropsEqual);

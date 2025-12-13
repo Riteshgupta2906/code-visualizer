@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   buildTreeLayout,
   mergeDependencyNodes,
@@ -11,7 +11,7 @@ import DependencyNode from "../_components/flow/DependencyNode";
 /**
  * Custom hook for managing dependency view (folder structure)
  */
-export function useDependencyView(structure) {
+export function useDependencyView(structure, dependencyMap) {
   const [expandedNodes, setExpandedNodes] = useState(
     new Set(["root", "root-app"])
   );
@@ -19,6 +19,63 @@ export function useDependencyView(structure) {
     new Map()
   );
   const [allExpanded, setAllExpanded] = useState(false);
+
+  // Helper to traverse structure and map file paths to node IDs
+  const mapPathsToNodeIds = useCallback((node, path = "", map = new Map()) => {
+    const nodeId = createNodeId(path);
+    if (node.type === "file") {
+      map.set(node.fullPath, nodeId);
+    }
+
+    if (node.children) {
+      node.children.forEach((child) => {
+        const childPath = path ? `${path}-${child.name}` : child.name;
+        mapPathsToNodeIds(child, childPath, map);
+      });
+    }
+    return map;
+  }, []);
+
+  // Initialize dependency results from global map
+  useEffect(() => {
+    if (!structure || !dependencyMap) return;
+
+    const pathToNodeId = mapPathsToNodeIds(structure, "root");
+    const newResults = new Map();
+
+    Object.values(dependencyMap).forEach((fileData) => {
+      const nodeId = pathToNodeId.get(fileData.fullPath);
+      if (nodeId) {
+        const result = {};
+
+        if (
+          (fileData.imports && fileData.imports.length > 0) ||
+          (fileData.externalImports && fileData.externalImports.length > 0)
+        ) {
+          result.outgoing = {
+            localDependencies: fileData.imports || [],
+            externalDependencies: fileData.externalImports || [],
+          };
+        }
+
+        if (fileData.importedBy && fileData.importedBy.length > 0) {
+          result.incoming = {
+            importedBy: fileData.importedBy.map((imp) => ({
+              filePath: imp.source, // Map source to filePath for consistency
+              relativePath: imp.relativePath,
+              name: imp.name,
+            })),
+          };
+        }
+
+        if (Object.keys(result).length > 0) {
+          newResults.set(nodeId, result);
+        }
+      }
+    });
+
+    setDependencyAnalysisResults(newResults);
+  }, [structure, dependencyMap, mapPathsToNodeIds]);
 
   // Toggle node expansion
   const toggleNode = useCallback((nodeId) => {
@@ -93,19 +150,70 @@ export function useDependencyView(structure) {
   }, []);
 
   // Handle dependency analysis
-  const handleDependencyAnalysis = useCallback((fileNodeId, dependencyData) => {
-    setDependencyAnalysisResults((prev) => {
-      const newMap = new Map(prev);
+  const handleDependencyAnalysis = useCallback(
+    (fileNodeId, filePath, mode = "outgoing") => {
+      setDependencyAnalysisResults((prev) => {
+        const newMap = new Map(prev);
+        const currentData = newMap.get(fileNodeId) || {};
 
-      if (dependencyData === null) {
-        newMap.delete(fileNodeId);
-      } else {
-        newMap.set(fileNodeId, dependencyData.data);
-      }
+        // If explicitly null (clearing), remove the mode
+        if (filePath === null) {
+          const newData = { ...currentData };
+          delete newData[mode];
 
-      return newMap;
-    });
-  }, []);
+          if (Object.keys(newData).length === 0) {
+            newMap.delete(fileNodeId);
+          } else {
+            newMap.set(fileNodeId, newData);
+          }
+          return newMap;
+        }
+
+        // Look up data in dependency map
+        const fileData = dependencyMap[filePath];
+        console.log("fileData", fileData,mode);      
+        if (!fileData) {
+          console.warn(`No dependency data found for ${filePath}`);
+          return newMap;
+        }
+
+        let modeData = null;
+
+        if (mode === "outgoing") {
+          if (
+            (fileData.imports && fileData.imports.length > 0) ||
+            (fileData.externalImports && fileData.externalImports.length > 0)
+          ) {
+            modeData = {
+              localDependencies: fileData.imports || [],
+              externalDependencies: fileData.externalImports || [],
+            };
+          }
+        } else if (mode === "incoming") {
+          if (fileData.importedBy && fileData.importedBy.length > 0) {
+            modeData = {
+              importedBy: fileData.importedBy.map((imp) => ({
+                filePath: imp.source,
+                relativePath: imp.relativePath,
+                name: imp.name,
+              })),
+            };
+          }
+        }
+        console.log("modeData", modeData, mode);  
+
+        if (modeData) {
+          newMap.set(fileNodeId, {
+            ...currentData,
+            [mode]: modeData,
+          });
+        }
+
+        return newMap;
+      });
+    },
+    [dependencyMap]
+  );
 
   // Calculate nodes and edges
   const graphData = useMemo(() => {
@@ -121,7 +229,8 @@ export function useDependencyView(structure) {
       structure,
       expandedNodes,
       toggleNode,
-      handleDependencyAnalysis
+      handleDependencyAnalysis,
+      dependencyAnalysisResults
     );
 
     const { dependencyNodes, dependencyEdges } = mergeDependencyNodes(

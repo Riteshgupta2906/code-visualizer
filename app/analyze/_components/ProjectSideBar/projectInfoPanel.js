@@ -23,6 +23,7 @@ export default function ProjectInfoPanel({
   schemaStats,
   schemaFileName,
 }) {
+  console.log("projectStats", projectStats);
   // Render project stats for dependency view
   if (currentView === "dependency") {
     return (

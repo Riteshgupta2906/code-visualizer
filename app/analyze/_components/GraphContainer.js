@@ -56,9 +56,11 @@ export default function GraphContainer({
   const prismaInfo = analysisData?.data?.prismaInfo;
 
   // Custom hooks for each view
-  const dependencyView = useDependencyView(filteredData?.data?.structure);
+  const dependencyView = useDependencyView(
+    filteredData?.data?.structure,
+    analysisData?.data?.dependencyMap
+  );
   const schemaView = useSchemaView(selectedSchema, prismaInfo);
-  console.log("Schema View Data:", schemaView);
 
   // Get active view data
   const activeView = useMemo(() => {

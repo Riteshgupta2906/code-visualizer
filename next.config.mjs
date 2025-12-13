@@ -12,6 +12,13 @@ const nextConfig = {
     }
     return config;
   },
+  serverExternalPackages: [
+    "madge",
+    "precinct",
+    "filing-cabinet",
+    "dependency-tree",
+    "typescript",
+  ],
 };
 
 export default nextConfig;

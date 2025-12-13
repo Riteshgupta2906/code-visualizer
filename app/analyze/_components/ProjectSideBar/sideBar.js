@@ -452,7 +452,7 @@ export default function FloatingTopBar({
                               <div className="text-xs text-gray-400 mt-1">
                                 {schema.stats.models} models •{" "}
                                 {schema.stats.enums} enums •{" "}
-                                {schema.stats.relationships.total} relations
+                                {schema.stats.relationships?.total || 0} relations
                               </div>
                             </button>
                           );

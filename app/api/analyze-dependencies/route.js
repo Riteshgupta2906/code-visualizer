@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeDependencies } from "@/lib/analyzers/dependency-analyzer";
+import {
+  analyzeDependencies,
+  findReverseDependencies,
+} from "../../../lib/analyzers/dependency-analyzer";
 
 export async function POST(request) {
   try {
@@ -12,11 +15,18 @@ export async function POST(request) {
       );
     }
 
-    const dependencies = analyzeDependencies(filePath, projectRoot);
+    // Run both analyses in parallel
+    const [dependencies, importedBy] = await Promise.all([
+      analyzeDependencies(filePath, projectRoot),
+      findReverseDependencies(filePath, projectRoot),
+    ]);
 
     return NextResponse.json({
       success: true,
-      data: dependencies,
+      data: {
+        ...dependencies,
+        importedBy,
+      },
     });
   } catch (error) {
     console.error("Dependency analysis error:", error);

@@ -506,7 +506,7 @@ const SPACING_CONFIG = {
 
   // Vertical Spacing (now represents sibling spread)
   FOLDER_TO_FOLDER_SPACING: 50,
-  FILE_TO_FILE_SPACING: 100,
+  FILE_TO_FILE_SPACING: 120,
   DEPENDENCY_VERTICAL_SPACING: 100,
   TREE_WIDTH_PADDING: 450,
 
@@ -520,7 +520,7 @@ const SPACING_CONFIG = {
   FOLDER_NODE_WIDTH: 260,
   FOLDER_NODE_HEIGHT: 80,
   FILE_NODE_WIDTH: 260,
-  FILE_NODE_HEIGHT: 30,
+  FILE_NODE_HEIGHT: 64,
   DEPENDENCY_NODE_WIDTH: 280,
   DEPENDENCY_NODE_HEIGHT: 40,
 
@@ -675,13 +675,17 @@ export function calculateTreeDimensions(
  * @param {string} dataKey - Key in target node's data to display (e.g., 'name')
  * @param {boolean} isAppRouter - Whether this is an app router route
  * @param {string} edgeType - Type of edge (folder/file/dependency)
+ * @param {string} sourceHandle - Optional source handle ID
+ * @param {string} targetHandle - Optional target handle ID
  */
 function createDataEdge(
   sourceId,
   targetId,
   dataKey = "name",
   isAppRouter = false,
-  edgeType = "folder"
+  edgeType = "folder",
+  sourceHandle = null,
+  targetHandle = null
 ) {
   // Determine edge color based on type
   let strokeColor = "#6b7280";
@@ -699,6 +703,9 @@ function createDataEdge(
   } else if (edgeType === "dependency-external") {
     strokeColor = "#6366f1";
     strokeWidth = 1.5;
+  } else if (edgeType === "dependency-incoming") {
+    strokeColor = "#8b5cf6";
+    strokeWidth = 2;
   }
 
   const edge = {
@@ -716,6 +723,9 @@ function createDataEdge(
     },
   };
 
+  if (sourceHandle) edge.sourceHandle = sourceHandle;
+  if (targetHandle) edge.targetHandle = targetHandle;
+
   // Add dashed line for external dependencies
   if (edgeType === "dependency-external") {
     edge.style.strokeDasharray = "5,5";
@@ -732,7 +742,8 @@ export function buildTreeLayout(
   rootData,
   expandedNodes,
   toggleNode,
-  onAnalyzeDependencies
+  onAnalyzeDependencies,
+  dependencyAnalysisResults
 ) {
   const nodes = [];
   const edges = [];
@@ -868,6 +879,12 @@ export function buildTreeLayout(
 
         const filePath = file.fullPath || "";
 
+        // Determine active modes for this file
+        const analysisResult = dependencyAnalysisResults?.get(fileNodeId);
+        const initialActiveModes = [];
+        if (analysisResult?.outgoing) initialActiveModes.push("outgoing");
+        if (analysisResult?.incoming) initialActiveModes.push("incoming");
+
         const fileNode = {
           id: fileNodeId,
           type: "file",
@@ -883,6 +900,7 @@ export function buildTreeLayout(
             projectRoot: projectRoot,
             nodeId: fileNodeId,
             onAnalyzeDependencies: onAnalyzeDependencies,
+            initialActiveModes, // Pass active modes to initialize UI
           },
           draggable: true,
         };
@@ -933,10 +951,20 @@ export function createDependencyNodes(
   const edges = [];
 
   const { localDependencies, externalDependencies } = dependencies;
-  const allDeps = [
-    ...(localDependencies || []),
-    ...(externalDependencies || []),
-  ];
+  
+  // Explicitly set isLocal and exists flag based on the source array
+  const formattedLocalDeps = (localDependencies || []).map((dep) => ({
+    ...dep,
+    isLocal: true,
+    exists: dep.exists,
+  }));
+  const formattedExternalDeps = (externalDependencies || []).map((dep) => ({
+    ...dep,
+    isLocal: false,
+    exists: true,
+  }));
+
+  const allDeps = [...formattedLocalDeps, ...formattedExternalDeps];
 
   if (allDeps.length === 0) {
     return { nodes, edges };
@@ -996,7 +1024,85 @@ export function createDependencyNodes(
         nodeId,
         "name", // Display the 'name' field from target node
         false,
-        edgeType
+        edgeType,
+        "dependency-out", // Source: File Node Right Handle
+        "dependency-in" // Target: Dependency Node Left Handle
+      )
+    );
+
+    childY += verticalSpacing;
+  });
+
+  return { nodes, edges };
+}
+
+// Dependencies go FURTHER LEFT and stack VERTICALLY
+export function createReverseDependencyNodes(
+  dependencies,
+  parentFileNodeId,
+  parentPosition,
+  existingNodes = []
+) {
+  const nodes = [];
+  const edges = [];
+
+  // dependencies is an array of { filePath, relativePath, name }
+  if (!dependencies || dependencies.length === 0) {
+    return { nodes, edges };
+  }
+
+  const childX =
+    parentPosition.x + SPACING_CONFIG.DEPENDENCY_HORIZONTAL_DISTANCE;
+  const depNodeHeight = SPACING_CONFIG.DEPENDENCY_NODE_HEIGHT;
+  const verticalSpacing = SPACING_CONFIG.DEPENDENCY_VERTICAL_SPACING;
+  const totalChildHeight = dependencies.length * verticalSpacing;
+  let childY = parentPosition.y - totalChildHeight / 2;
+
+  dependencies.forEach((dep, index) => {
+    const depY = childY + verticalSpacing / 2;
+    const initialPosition = {
+      x: childX,
+      y: depY - depNodeHeight / 2,
+    };
+    const safePosition = findCompactPosition(
+      initialPosition,
+      [...existingNodes, ...nodes],
+      SPACING_CONFIG.DEPENDENCY_NODE_WIDTH,
+      depNodeHeight
+    );
+
+    const nodeId = `${parentFileNodeId}-rev-dep-${index}`;
+    const dependencyNode = {
+      id: nodeId,
+      type: "dependency", // Reuse dependency node for now, or create a new one if needed
+      position: safePosition,
+      width: SPACING_CONFIG.DEPENDENCY_NODE_WIDTH,
+      height: depNodeHeight,
+      data: {
+        name: dep.name,
+        type: "dependency",
+        dependencyInfo: { ...dep, type: "import" }, // Mock info to satisfy component
+        isLocal: true, // Usually local files import us
+        exists: true,
+        resolvedPath: dep.filePath,
+        importType: "import",
+        nodeId: nodeId,
+      },
+      draggable: true,
+    };
+
+    nodes.push(dependencyNode);
+
+    // Create edge FROM File TO Dependency using createDataEdge
+    edges.push(
+      createDataEdge(
+        parentFileNodeId,
+        nodeId,
+        "name", // Display 'name' though usually hidden for dependencies if key not found? Or maybe we want name.
+        false,
+        "dependency-incoming",
+        "dependency-out",
+        "dependency-in"
       )
     );
 
@@ -1014,14 +1120,36 @@ export function mergeDependencyNodes(baseNodes, dependencyAnalysisResults) {
     const fileNode = baseNodes.find((n) => n.id === fileNodeId);
     if (fileNode) {
       const allExistingNodes = [...baseNodes, ...dependencyNodes];
-      const { nodes, edges } = createDependencyNodes(
-        depData,
-        fileNodeId,
-        fileNode.position,
-        allExistingNodes
-      );
-      dependencyNodes.push(...nodes);
-      dependencyEdges.push(...edges);
+
+      // Handle Outgoing Dependencies
+      if (depData.outgoing) {
+        const { nodes, edges } = createDependencyNodes(
+          depData.outgoing,
+          fileNodeId,
+          fileNode.position,
+          allExistingNodes
+        );
+        dependencyNodes.push(...nodes);
+        dependencyEdges.push(...edges);
+      }
+
+      // Handle Incoming Dependencies (Reverse)
+      if (depData.incoming && depData.incoming.importedBy) {
+        // Update existing nodes list with newly added outgoing nodes to avoid collision
+        const updatedExistingNodes = [
+          ...allExistingNodes,
+          ...dependencyNodes.slice(allExistingNodes.length - baseNodes.length), // This logic is a bit flawed, just pass everything
+        ];
+
+        const { nodes, edges } = createReverseDependencyNodes(
+          depData.incoming.importedBy,
+          fileNodeId,
+          fileNode.position,
+          [...allExistingNodes, ...dependencyNodes]
+        );
+        dependencyNodes.push(...nodes);
+        dependencyEdges.push(...edges);
+      }
     }
   });
 

@@ -82,79 +82,76 @@ export default function ProjectInfoPanel({
               </div>
 
               {/* Route Stats */}
-              {projectStats.hasAppRouter && (
+              
+              {/* Total Routes */}
+              {projectStats.routeCount > 0 && (
                 <>
-                  {/* Total Routes */}
-                  {projectStats.routeCount > 0 && (
-                    <>
-                      <div className="w-px h-4 bg-white/10" />
-                      <div className="flex items-center gap-1.5 group/stat cursor-default">
-                        <div className="w-5 h-5 bg-cyan-500/10 rounded flex items-center justify-center transition-all group-hover/stat:bg-cyan-500/20">
-                          <Globe className="w-3 h-3 text-cyan-400" />
-                        </div>
-                        <span className="text-xs font-semibold text-white">
-                          {projectStats.routeCount}
-                        </span>
-                        <span className="text-[11px] text-gray-400 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-200 max-w-0 group-hover/stat:max-w-xs overflow-hidden whitespace-nowrap">
-                          Routes
-                        </span>
-                      </div>
-                    </>
-                  )}
+                  <div className="w-px h-4 bg-white/10" />
+                  <div className="flex items-center gap-1.5 group/stat cursor-default">
+                    <div className="w-5 h-5 bg-cyan-500/10 rounded flex items-center justify-center transition-all group-hover/stat:bg-cyan-500/20">
+                      <Globe className="w-3 h-3 text-cyan-400" />
+                    </div>
+                    <span className="text-xs font-semibold text-white">
+                      {projectStats.routeCount}
+                    </span>
+                    <span className="text-[11px] text-gray-400 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-200 max-w-0 group-hover/stat:max-w-xs overflow-hidden whitespace-nowrap">
+                      Routes
+                    </span>
+                  </div>
+                </>
+              )}
 
-                  {/* API Routes */}
-                  {projectStats.apiEndpoints > 0 && (
-                    <>
-                      <div className="w-px h-4 bg-white/10" />
-                      <div className="flex items-center gap-1.5 group/stat cursor-default">
-                        <div className="w-5 h-5 bg-purple-500/10 rounded flex items-center justify-center transition-all group-hover/stat:bg-purple-500/20">
-                          <Code className="w-3 h-3 text-purple-400" />
-                        </div>
-                        <span className="text-xs font-semibold text-white">
-                          {projectStats.apiEndpoints}
-                        </span>
-                        <span className="text-[11px] text-gray-400 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-200 max-w-0 group-hover/stat:max-w-xs overflow-hidden whitespace-nowrap">
-                          API
-                        </span>
-                      </div>
-                    </>
-                  )}
+              {/* API Routes */}
+              {projectStats.apiEndpoints > 0 && (
+                <>
+                  <div className="w-px h-4 bg-white/10" />
+                  <div className="flex items-center gap-1.5 group/stat cursor-default">
+                    <div className="w-5 h-5 bg-purple-500/10 rounded flex items-center justify-center transition-all group-hover/stat:bg-purple-500/20">
+                      <Code className="w-3 h-3 text-purple-400" />
+                    </div>
+                    <span className="text-xs font-semibold text-white">
+                      {projectStats.apiEndpoints}
+                    </span>
+                    <span className="text-[11px] text-gray-400 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-200 max-w-0 group-hover/stat:max-w-xs overflow-hidden whitespace-nowrap">
+                      API
+                    </span>
+                  </div>
+                </>
+              )}
 
-                  {/* Dynamic Routes */}
-                  {projectStats.dynamicRoutes > 0 && (
-                    <>
-                      <div className="w-px h-4 bg-white/10" />
-                      <div className="flex items-center gap-1.5 group/stat cursor-default">
-                        <div className="w-5 h-5 bg-rose-500/10 rounded flex items-center justify-center transition-all group-hover/stat:bg-rose-500/20">
-                          <Route className="w-3 h-3 text-rose-400" />
-                        </div>
-                        <span className="text-xs font-semibold text-white">
-                          {projectStats.dynamicRoutes}
-                        </span>
-                        <span className="text-[11px] text-gray-400 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-200 max-w-0 group-hover/stat:max-w-xs overflow-hidden whitespace-nowrap">
-                          Dynamic
-                        </span>
-                      </div>
-                    </>
-                  )}
+              {/* Dynamic Routes */}
+              {projectStats.dynamicRoutes > 0 && (
+                <>
+                  <div className="w-px h-4 bg-white/10" />
+                  <div className="flex items-center gap-1.5 group/stat cursor-default">
+                    <div className="w-5 h-5 bg-rose-500/10 rounded flex items-center justify-center transition-all group-hover/stat:bg-rose-500/20">
+                      <Route className="w-3 h-3 text-rose-400" />
+                    </div>
+                    <span className="text-xs font-semibold text-white">
+                      {projectStats.dynamicRoutes}
+                    </span>
+                    <span className="text-[11px] text-gray-400 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-200 max-w-0 group-hover/stat:max-w-xs overflow-hidden whitespace-nowrap">
+                      Dynamic
+                    </span>
+                  </div>
+                </>
+              )}
 
-                  {/* Route Groups */}
-                  {projectStats.routeGroups > 0 && (
-                    <>
-                      <div className="w-px h-4 bg-white/10" />
-                      <div className="flex items-center gap-1.5 group/stat cursor-default">
-                        <div className="w-5 h-5 bg-indigo-500/10 rounded flex items-center justify-center transition-all group-hover/stat:bg-indigo-500/20">
-                          <Layers className="w-3 h-3 text-indigo-400" />
-                        </div>
-                        <span className="text-xs font-semibold text-white">
-                          {projectStats.routeGroups}
-                        </span>
-                        <span className="text-[11px] text-gray-400 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-200 max-w-0 group-hover/stat:max-w-xs overflow-hidden whitespace-nowrap">
-                          Groups
-                        </span>
-                      </div>
-                    </>
-                  )}
+              {/* Route Groups */}
+              {projectStats.routeGroups > 0 && (
+                <>
+                  <div className="w-px h-4 bg-white/10" />
+                  <div className="flex items-center gap-1.5 group/stat cursor-default">
+                    <div className="w-5 h-5 bg-indigo-500/10 rounded flex items-center justify-center transition-all group-hover/stat:bg-indigo-500/20">
+                      <Layers className="w-3 h-3 text-indigo-400" />
+                    </div>
+                    <span className="text-xs font-semibold text-white">
+                      {projectStats.routeGroups}
+                    </span>
+                    <span className="text-[11px] text-gray-400 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-200 max-w-0 group-hover/stat:max-w-xs overflow-hidden whitespace-nowrap">
+                      Groups
+                    </span>
+                  </div>
                 </>
               )}
             </div>

@@ -8,7 +8,7 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Code Visualizer",
+  title: "Code Eye",
   description:
     "Analyze and visualize your Next.js App Router project structure",
 };

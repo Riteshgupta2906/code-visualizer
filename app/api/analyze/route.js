@@ -5,6 +5,7 @@ import { projectManager } from "../../../lib/services/project-manager";
 export const runtime = "nodejs"; // Force Node.js runtime
 
 export async function POST(request) {
+
   try {
     const body = await request.json();
     const { projectPath } = body;
@@ -50,6 +51,7 @@ export async function POST(request) {
             originalSource: projectPath
         },
         dependencyMap: analysisResult.dependencyMap,
+        gitInfo: analysisResult.gitInfo,
       },
     });
   } catch (error) {

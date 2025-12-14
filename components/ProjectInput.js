@@ -38,7 +38,7 @@ export default function ProjectInput() {
     <div className="w-full max-w-4xl mx-auto space-y-4">
       <form onSubmit={handleSubmit} className="relative group z-20">
         {/* Glow effect behind input bar */}
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
 
         <div className="relative flex items-center bg-black/80 backdrop-blur-xl border border-gray-800 rounded-xl p-1.5 shadow-2xl">
           
@@ -51,7 +51,7 @@ export default function ProjectInput() {
             >
               {inputType === "local" ? (
                 <>
-                  <Folder className="w-4 h-4 text-blue-400" />
+                  <Folder className="w-4 h-4 text-purple-400" />
                   <span>Local Path</span>
                 </>
               ) : (
@@ -71,7 +71,7 @@ export default function ProjectInput() {
                   onClick={() => handleTypeSelect("local")}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
                 >
-                  <Folder className="w-4 h-4 text-blue-400" />
+                  <Folder className="w-4 h-4 text-purple-400" />
                   Local Project Path
                 </button>
                 <button
@@ -102,7 +102,7 @@ export default function ProjectInput() {
           <Button
             type="submit"
             disabled={isAnalyzing}
-            className="h-11 px-6 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-lg shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="h-11 px-6 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-lg shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             {isAnalyzing ? (
               <Loader2 className="w-4 h-4 animate-spin" />

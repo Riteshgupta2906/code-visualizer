@@ -9,6 +9,7 @@ import {
   useState,
 } from "react"
 import { motion, useInView } from "motion/react";
+import { BorderBeam } from "./border-beam";
 
 import { cn } from "@/lib/utils"
 
@@ -206,10 +207,11 @@ export const Terminal = ({
     <div
       ref={containerRef}
       className={cn(
-        "border-border bg-background z-0 h-full max-h-[400px] w-full max-w-lg rounded-xl border",
+        "bg-background z-0 h-full h-[325px] w-full max-w-lg rounded-xl border-2 border-white/10 ring-1 ring-white/5 relative",
         className
       )}>
-      <div className="border-border flex flex-row items-center justify-between border-b p-4">
+      {/* <BorderBeam size={250} duration={12} delay={9} colorFrom="#29d8ff" colorTo="#4a00ff" /> */}
+      <div className="border-border flex flex-row items-center justify-between p-4 pb-0">
         <div className="flex flex-row gap-x-2">
           <div className="h-2 w-2 rounded-full bg-red-500"></div>
           <div className="h-2 w-2 rounded-full bg-yellow-500"></div>

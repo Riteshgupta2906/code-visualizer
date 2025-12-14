@@ -106,6 +106,7 @@ export default function FloatingTopBar({
   selectedSchema = null,
   onSchemaSelect = () => {},
   prismaInfo = null,
+  gitInfo = null,
 }) {
   //  console.log("structure prop:", structure);
   const [showBreadcrumbMenu, setShowBreadcrumbMenu] = useState(false);
@@ -309,7 +310,7 @@ export default function FloatingTopBar({
                 <div className="flex items-center gap-2 mb-3">
                   <Info className="w-4 h-4 text-cyan-400" />
                   <h3 className="text-sm font-semibold text-white">
-                    Page Information
+                    Git Information
                   </h3>
                 </div>
 
@@ -317,9 +318,79 @@ export default function FloatingTopBar({
                 <div className="h-px bg-white/10 mb-3" />
 
                 {/* Content Area - Empty for now */}
-                <div className="text-xs text-white/60 text-center py-6">
-                  Information will be displayed here
-                </div>
+                {/* Content Area */}
+                {gitInfo ? (
+                  <div className="space-y-4">
+                    {/* Branch Info */}
+                    <div className="space-y-1">
+                      <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
+                        Current Branch
+                      </div>
+                      <div className="flex items-center gap-2 text-white/90">
+                        <GitBranch className="w-3.5 h-3.5 text-blue-400" />
+                        <span className="font-mono text-xs">
+                          {gitInfo.currentBranch}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Latest Commit */}
+                    {gitInfo.latestCommit && (
+                      <div className="space-y-2">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
+                          Latest Commit
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 space-y-2 border border-white/10">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-[10px] text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                              {gitInfo.latestCommit.hash.substring(0, 7)}
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                              {new Date(
+                                gitInfo.latestCommit.date
+                              ).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-xs text-white/80 line-clamp-2 italic">
+                            "{gitInfo.latestCommit.message}"
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 border-t border-white/5 pt-2 mt-1">
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-[8px] text-white font-bold uppercase">
+                              {gitInfo.latestCommit.author_name.substring(0, 2)}
+                            </div>
+                            <span>{gitInfo.latestCommit.author_name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status Stats */}
+                    {gitInfo.status && (
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
+                          <div className="text-lg font-mono font-bold text-emerald-400">
+                            {gitInfo.status.modified}
+                          </div>
+                          <div className="text-[9px] text-emerald-200/60 uppercase tracking-widest">
+                            Modified
+                          </div>
+                        </div>
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 text-center">
+                          <div className="text-lg font-mono font-bold text-red-400">
+                            {gitInfo.status.deleted}
+                          </div>
+                          <div className="text-[9px] text-red-200/60 uppercase tracking-widest">
+                            Deleted
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-white/60 text-center py-6">
+                    No Git Information Available
+                  </div>
+                )}
               </div>
             </div>
           )}

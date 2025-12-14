@@ -34,9 +34,23 @@ export default function GraphContainer({
   const filteredData = useMemo(() => {
     if (!analysisData?.data?.structure) return null;
 
-    const appFolder = analysisData.data.structure.children?.find(
+    // Check for direct app folder
+    let appFolder = analysisData.data.structure.children?.find(
       (child) => child.type === "folder" && child.name === "app"
     );
+
+    // If not found, check for src/app
+    if (!appFolder) {
+      const srcFolder = analysisData.data.structure.children?.find(
+        (child) => child.type === "folder" && child.name === "src"
+      );
+
+      if (srcFolder && srcFolder.children) {
+        appFolder = srcFolder.children.find(
+          (child) => child.type === "folder" && child.name === "app"
+        );
+      }
+    }
 
     if (!appFolder) return analysisData;
 
@@ -273,6 +287,7 @@ export default function GraphContainer({
           selectedSchema={selectedSchema}
           onSchemaSelect={handleSchemaSelect}
           prismaInfo={prismaInfo}
+          gitInfo={analysisData?.data?.gitInfo}
           allExpanded={dependencyView.allExpanded}
           onExpandAll={dependencyView.expandAll}
           onCollapseAll={dependencyView.collapseAll}

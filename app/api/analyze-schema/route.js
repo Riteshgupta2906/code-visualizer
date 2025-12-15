@@ -2,11 +2,12 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { getDMMF } from "@prisma/internals";
 import fs from "fs/promises";
+import path from "path";
 import * as d3 from "d3";
 
 export async function POST(request) {
   try {
-    const { schemaPath } = await request.json();
+    const { schemaPath, schemaFolderPath } = await request.json();
 
     if (!schemaPath) {
       return NextResponse.json(
@@ -15,14 +16,86 @@ export async function POST(request) {
       );
     }
 
-    // Read schema file
-    const schemaContent = await fs.readFile(schemaPath, "utf-8");
+    let schemaContent = "";
+
+    // Strategy:
+    // 1. If schemaFolderPath is provided, we combine ALL files in that folder to get the full DMMF (context).
+    // 2. Then we extract ONLY the models defined in the specific schemaPath to filter the graph.
+    // 3. If no schemaFolderPath, we treat schemaPath as a single standalone file (or auto-detect folder if it is one).
+
+    let isFolderMode = false;
+    let targetFileContent = "";
+
+    if (schemaFolderPath) {
+       isFolderMode = true;
+       // We need to read all files for DMMF context
+       const files = await fs.readdir(schemaFolderPath);
+       const prismaFiles = files.filter(f => f.endsWith(".prisma"));
+       
+       const contentDTOs = await Promise.all(
+        prismaFiles.map(async (file) => {
+          const content = await fs.readFile(path.join(schemaFolderPath, file), "utf-8");
+          return content;
+        })
+      );
+      schemaContent = contentDTOs.join("\n\n");
+      
+      // Also read the specific target file for filtering
+      targetFileContent = await fs.readFile(schemaPath, "utf-8");
+
+    } else {
+        // Legacy/Direct mode
+        const pathStats = await fs.stat(schemaPath);
+        
+        if (pathStats.isDirectory()) {
+            // User selected a folder directly (view ALL)
+            isFolderMode = true; // technically yes, but we show everything
+            const files = await fs.readdir(schemaPath);
+            const prismaFiles = files.filter(f => f.endsWith(".prisma"));
+            
+            const contentDTOs = await Promise.all(
+                prismaFiles.map(async (file) => {
+                const content = await fs.readFile(path.join(schemaPath, file), "utf-8");
+                return content;
+                })
+            );
+            schemaContent = contentDTOs.join("\n\n");
+            // No targetFileContent, so we show everything
+        } else {
+            // Single file mode
+            schemaContent = await fs.readFile(schemaPath, "utf-8");
+            targetFileContent = schemaContent; // We show everything in this file
+        }
+    }
 
     // Parse schema using Prisma internals
     const dmmf = await getDMMF({ datamodel: schemaContent });
 
     // Transform to graph nodes and edges
-    const { nodes, edges } = transformToGraph(dmmf.datamodel);
+    let { nodes, edges } = transformToGraph(dmmf.datamodel);
+
+    // Filter if we have a specific target file in folder mode
+    if (schemaFolderPath && targetFileContent) {
+        // Extract model and enum names from the target file
+        const definedModels = new Set();
+        const modelMatches = targetFileContent.matchAll(/model\s+(\w+)\s*\{/g);
+        for (const match of modelMatches) definedModels.add(match[1]);
+
+        const definedEnums = new Set();
+        const enumMatches = targetFileContent.matchAll(/enum\s+(\w+)\s*\{/g);
+        for (const match of enumMatches) definedEnums.add(match[1]);
+
+        // Filter nodes
+        nodes = nodes.filter(node => {
+            if (node.data.modelType === 'model') return definedModels.has(node.data.label);
+            if (node.data.modelType === 'enum') return definedEnums.has(node.data.label);
+            return true;
+        });
+
+        // Filter edges (keep only if both source and target are in the filtered nodes)
+        const validNodeIds = new Set(nodes.map(n => n.id));
+        edges = edges.filter(edge => validNodeIds.has(edge.source) && validNodeIds.has(edge.target));
+    }
 
     // Apply layout
     const layoutedNodes = applyForceLayout(nodes, edges);
@@ -39,8 +112,13 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("Schema analysis error:", error);
+    
+    // Strip ANSI color codes from the error message for cleaner UI display
+    const cleanErrorMessage = (error.message || "Failed to analyze schema")
+      .replace(/\x1b\[[0-9;]*m/g, "");
+
     return NextResponse.json(
-      { error: error.message || "Failed to analyze schema" },
+      { error: cleanErrorMessage },
       { status: 500 }
     );
   }

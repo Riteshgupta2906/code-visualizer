@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "tmp/**",           // ← Added this
+      "**/tmp/**",        // ← This catches nested tmp folders too
     ],
   },
 ];

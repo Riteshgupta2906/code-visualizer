@@ -24,7 +24,8 @@ export default function GraphContainer({
   projectPath,
 }) {
   const [currentView, setCurrentView] = useState("dependency");
-  const [selectedSchema, setSelectedSchema] = useState(null);
+  const [selectedSchema, setSelectedSchema] = useState(null); // This is the folder path if schema folder
+  const [selectedSchemaFile, setSelectedSchemaFile] = useState(null); // specific file inside folder
   const [selectedModel, setSelectedModel] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [fileContent, setFileContent] = useState(null);
@@ -32,51 +33,29 @@ export default function GraphContainer({
   const reactFlowInstance = useRef(null);
   const hasInitialFitView = useRef(false);
 
-  // Filter analysis data to show only root folder with app folder as child
-  const filteredData = useMemo(() => {
-    if (!analysisData?.data?.structure) return null;
-
-    // Check for direct app folder
-    let appFolder = analysisData.data.structure.children?.find(
-      (child) => child.type === "folder" && child.name === "app"
-    );
-
-    // If not found, check for src/app
-    if (!appFolder) {
-      const srcFolder = analysisData.data.structure.children?.find(
-        (child) => child.type === "folder" && child.name === "src"
-      );
-
-      if (srcFolder && srcFolder.children) {
-        appFolder = srcFolder.children.find(
-          (child) => child.type === "folder" && child.name === "app"
-        );
-      }
-    }
-
-    if (!appFolder) return analysisData;
-
-    return {
-      ...analysisData,
-      data: {
-        ...analysisData.data,
-        structure: {
-          ...analysisData.data.structure,
-          children: [appFolder],
-        },
-      },
-    };
-  }, [analysisData]);
+  // No filtering needed - structure is already the app folder from server
+  const structure = analysisData?.data?.structure;
 
   // Get prisma info
   const prismaInfo = analysisData?.data?.prismaInfo;
+  
+  // Determine effective paths for hook
+  const effectiveSchemaPath = selectedSchemaFile || selectedSchema;
+  const effectiveFolderPath = selectedSchemaFile ? selectedSchema : null;
 
   // Custom hooks for each view
   const dependencyView = useDependencyView(
-    filteredData?.data?.structure,
+    structure,
     analysisData?.data?.dependencyMap
   );
-  const schemaView = useSchemaView(selectedSchema, prismaInfo, undefined, undefined, selectedModel);
+  const schemaView = useSchemaView(
+      effectiveSchemaPath, 
+      prismaInfo, 
+      undefined, 
+      undefined, 
+      selectedModel,
+      effectiveFolderPath
+  );
 
   // Get active view data
   const activeView = useMemo(() => {
@@ -140,7 +119,16 @@ export default function GraphContainer({
         prismaInfo?.detected &&
         prismaInfo.schemas.length > 0
       ) {
-        setSelectedSchema(prismaInfo.schemas[0].filePath);
+        // Just select the first one (file or folder)
+        const firstSchema = prismaInfo.schemas[0];
+        setSelectedSchema(firstSchema.filePath);
+
+        // If it is a schema folder, select the first file by default
+        if (firstSchema.isSchemaFolder && firstSchema.files?.length > 0) {
+            setSelectedSchemaFile(firstSchema.files[0].filePath);
+        } else {
+            setSelectedSchemaFile(null);
+        }
       }
 
       // Fit view after switching
@@ -161,7 +149,23 @@ export default function GraphContainer({
   // Handle schema selection
   const handleSchemaSelect = useCallback((schemaPath) => {
     setSelectedSchema(schemaPath);
+    
+    // Find the schema object to check if it's a folder
+    const schema = prismaInfo?.schemas?.find(s => s.filePath === schemaPath);
+    
+    if (schema?.isSchemaFolder && schema.files?.length > 0) {
+        // Default to the first file
+        setSelectedSchemaFile(schema.files[0].filePath);
+    } else {
+        setSelectedSchemaFile(null); 
+    }
+    
     setSelectedModel(null); // Reset model selection when schema changes
+  }, [prismaInfo]);
+  
+  const handleSchemaFileSelect = useCallback((filePath) => {
+      setSelectedSchemaFile(filePath);
+      setSelectedModel(null);
   }, []);
 
   const handleModelSelect = useCallback((modelName) => {
@@ -251,13 +255,13 @@ export default function GraphContainer({
     setFileContent(null);
   }, []);
 
-  if (!analysisData?.data?.structure) {
+  if (!structure) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-900">
         <div className="text-center">
-          <p className="text-gray-400">No project data available</p>
+          <p className="text-gray-400">No App Router structure available</p>
           <p className="text-sm text-gray-600">
-            Upload a Next.js project to see the App Router structure
+            Upload a Next.js project with an App Router to see the structure
           </p>
         </div>
       </div>
@@ -289,15 +293,18 @@ export default function GraphContainer({
         {/* FloatingTopBar with view and schema controls */}
         <FloatingTopBar
           structure={analysisData?.data?.structure}
+          projectPath={projectPath}
+          allExpanded={dependencyView.allExpanded}
+          onExpandAll={dependencyView.expandAll}
+          onCollapseAll={dependencyView.collapseAll}
           currentView={currentView}
           onViewChange={handleViewChange}
           selectedSchema={selectedSchema}
           onSchemaSelect={handleSchemaSelect}
+          selectedSchemaFile={selectedSchemaFile}
+          onSchemaFileSelect={handleSchemaFileSelect}
           prismaInfo={prismaInfo}
           gitInfo={analysisData?.data?.gitInfo}
-          allExpanded={dependencyView.allExpanded}
-          onExpandAll={dependencyView.expandAll}
-          onCollapseAll={dependencyView.collapseAll}
           allModels={schemaView.allModels}
           selectedModel={selectedModel}
           onModelSelect={handleModelSelect}
@@ -306,15 +313,15 @@ export default function GraphContainer({
         {/* Project Info Panel - Pass schema stats when in schema view */}
         <ProjectInfoPanel
           projectStats={projectStats}
-          projectPath={projectPath}
+          schemaStats={activeView?.schemaData?.stats}
           currentView={currentView}
-          schemaStats={
-            currentView === "schema" ? schemaView.schemaData?.stats : null
-          }
+          gitInfo={analysisData?.data?.gitInfo}
           schemaFileName={
-            currentView === "schema" ? schemaView.schemaData?.fileName : null
+            currentView === "schema" ? activeView?.schemaData?.fileName : null
           }
         />
+
+       
 
         {/* Schema Legend */}
         {currentView === "schema" && <SchemaLegend />}
@@ -353,6 +360,44 @@ export default function GraphContainer({
       {/* Loading Overlay */}
       {activeView.loading && (
         <LoadingOverlay message={activeView.loadingMessage} />
+      )}
+
+      {/* Error Overlay */}
+      {activeView.error && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm p-8">
+          <div className="bg-red-950/90 border border-red-500/50 rounded-xl shadow-2xl max-w-2xl w-full p-6 text-red-200 overflow-hidden">
+            <h3 className="text-xl font-bold text-red-100 mb-4 flex items-center gap-2">
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              Schema Validation Error
+            </h3>
+            <div className="bg-black/50 rounded-lg p-4 font-mono text-sm overflow-auto max-h-[60vh] whitespace-pre-wrap">
+              {activeView.error}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  // Optional: Add a way to dismiss or retry, currently just stays until schema changes
+                  // For now, maybe just let them know they need to fix the file
+                }}
+                className="px-4 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-100 rounded-lg transition-colors border border-red-700/50"
+              >
+                Please fix errors in your schema file
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

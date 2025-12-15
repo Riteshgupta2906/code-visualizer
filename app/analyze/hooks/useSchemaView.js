@@ -191,7 +191,8 @@ export function useSchemaView(
   prismaInfo,
   viewportWidth,
   viewportHeight,
-  selectedModel = null
+  selectedModel = null,
+  schemaFolderPath = null // New param
 ) {
   const [schemaData, setSchemaData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -200,17 +201,17 @@ export function useSchemaView(
   // Load schema when path changes
   useEffect(() => {
     if (schemaPath) {
-      loadSchema(schemaPath);
+      loadSchema(schemaPath, schemaFolderPath);
     } else {
       setSchemaData(null);
     }
-  }, [schemaPath]);
+  }, [schemaPath, schemaFolderPath]);
 
-  const loadSchema = async (path) => {
+  const loadSchema = async (path, folderPath) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await analyzeSchemaForGraph(path);
+      const data = await analyzeSchemaForGraph(path, folderPath);
       console.log("📦 Schema Analysis Data (before layout):", data);
       setSchemaData(data);
     } catch (err) {

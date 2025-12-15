@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   FolderOpen,
   Activity,
+  FolderX,
 } from "lucide-react";
 
 function LoadingState() {
@@ -39,7 +40,7 @@ function LoadingState() {
             Analyzing Next.js Project
           </h2>
           <p className="text-gray-400 text-lg font-light max-w-md mx-auto">
-            Scanning App Router structure, API routes, and routing patterns...
+            Searching for App Router folder and analyzing structure...
           </p>
         </div>
 
@@ -50,7 +51,7 @@ function LoadingState() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           </span>
           <span className="text-sm font-medium text-gray-400">
-            Detecting HTTP methods in route files
+            Detecting App Router patterns
           </span>
         </div>
       </div>
@@ -89,16 +90,13 @@ function AnalyzeContent() {
       if (!response.ok) {
         throw new Error(data.error || "Analysis failed");
       }
-      console.log("Analysis Data:", data);
 
-      // Store dependency map in session storage
-      if (data?.data?.dependencyMap) {
-        sessionStorage.setItem(
-          "dependencyMap",
-          JSON.stringify(data.data.dependencyMap)
-        );
+      // Check if analysis succeeded
+      if (!data.success) {
+        throw new Error(data.error || "Analysis failed - no app folder found");
       }
 
+      console.log("Analysis Data:", data);
       setAnalysisData(data);
     } catch (err) {
       setError(err.message);
@@ -138,21 +136,24 @@ function AnalyzeContent() {
         apiEndpoints: 0,
         dynamicRoutes: 0,
         routeGroups: 0,
+        appRouterLocation: null,
       };
     }
 
     const counts = countItems(analysisData.data.structure);
     const insights = analysisData.data.insights || {};
+    const appFolderInfo = analysisData.data.appFolderInfo || {};
 
     return {
       totalFiles: counts.files,
       totalFolders: counts.folders,
-      projectName: analysisData.data.structure.name || "Unknown Project",
-      hasAppRouter: insights.appRouterDetected || false,
+      projectName: analysisData.data.structure.name || "app",
+      hasAppRouter: insights.appRouterDetected || true,
       routeCount: insights.routeCount || 0,
       apiEndpoints: insights.apiEndpointCount || 0,
       dynamicRoutes: insights.routePatterns?.dynamic || 0,
       routeGroups: insights.routePatterns?.routeGroups || 0,
+      appRouterLocation: appFolderInfo.location || "app",
     };
   };
 
@@ -163,25 +164,46 @@ function AnalyzeContent() {
   }
 
   if (error) {
+    // Check if it's specifically a "no app folder" error
+    const isNoAppFolderError = error.toLowerCase().includes("no app router");
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black flex items-center justify-center">
         <Card className="w-full max-w-md shadow-2xl border border-gray-800 bg-gray-900/95 backdrop-blur-sm">
           <CardContent className="p-8">
             <div className="text-center space-y-6">
-              <div className="w-16 h-16 mx-auto bg-red-900/50 rounded-2xl flex items-center justify-center border border-red-800">
-                <AlertTriangle className="w-8 h-8 text-red-400" />
+              <div className={`w-16 h-16 mx-auto ${isNoAppFolderError ? 'bg-orange-900/50 border-orange-800' : 'bg-red-900/50 border-red-800'} rounded-2xl flex items-center justify-center border`}>
+                {isNoAppFolderError ? (
+                  <FolderX className="w-8 h-8 text-orange-400" />
+                ) : (
+                  <AlertTriangle className="w-8 h-8 text-red-400" />
+                )}
               </div>
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-white">
-                  Analysis Failed
+                  {isNoAppFolderError ? "No App Router Found" : "Analysis Failed"}
                 </h2>
                 <Alert
-                  variant="destructive"
-                  className="text-left bg-red-900/20 border-red-800 text-red-400"
+                  variant={isNoAppFolderError ? "default" : "destructive"}
+                  className={`text-left ${isNoAppFolderError ? 'bg-orange-900/20 border-orange-800 text-orange-400' : 'bg-red-900/20 border-red-800 text-red-400'}`}
                 >
-                  <AlertTriangle className="h-4 w-4" />
+                  {isNoAppFolderError ? (
+                    <FolderX className="h-4 w-4" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4" />
+                  )}
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
+                {isNoAppFolderError && (
+                  <div className="text-left bg-gray-800/50 border border-gray-700 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-gray-300 mb-2">This tool requires:</p>
+                    <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
+                      <li>A Next.js project with App Router</li>
+                      <li>An <code className="bg-gray-900 px-1 rounded">app</code> folder containing layout or page files</li>
+                      <li>Common locations: <code className="bg-gray-900 px-1 rounded">/app</code> or <code className="bg-gray-900 px-1 rounded">/src/app</code></li>
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="flex gap-3">
                 <Button

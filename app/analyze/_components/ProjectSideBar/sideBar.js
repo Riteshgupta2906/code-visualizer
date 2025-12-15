@@ -107,6 +107,8 @@ export default function FloatingTopBar({
   onViewChange = () => {},
   selectedSchema = null,
   onSchemaSelect = () => {},
+  selectedSchemaFile = null, // New prop
+  onSchemaFileSelect = () => {}, // New prop
   prismaInfo = null,
   gitInfo = null,
   allModels = [],
@@ -118,12 +120,14 @@ export default function FloatingTopBar({
   const [showDirectory, setShowDirectory] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showSchemaDropdown, setShowSchemaDropdown] = useState(false);
+  const [showSchemaFileDropdown, setShowSchemaFileDropdown] = useState(false); // New state
   const [showInfo, setShowInfo] = useState(false);
   const [showModelSearch, setShowModelSearch] = useState(false);
   const [modelSearchQuery, setModelSearchQuery] = useState("");
   const breadcrumbRef = useRef(null);
   const layoutRef = useRef(null);
   const schemaRef = useRef(null);
+  const schemaFileRef = useRef(null); // New ref
   const infoRef = useRef(null);
   const modelSearchRef = useRef(null);
   const modelSearchInputRef = useRef(null);
@@ -173,6 +177,9 @@ export default function FloatingTopBar({
       }
       if (schemaRef.current && !schemaRef.current.contains(event.target)) {
         setShowSchemaDropdown(false);
+      }
+      if (schemaFileRef.current && !schemaFileRef.current.contains(event.target)) { 
+        setShowSchemaFileDropdown(false);
       }
       if (infoRef.current && !infoRef.current.contains(event.target)) {
         setShowInfo(false);
@@ -230,12 +237,24 @@ export default function FloatingTopBar({
     if (!selectedSchema || !prismaInfo?.schemas) return null;
     return prismaInfo.schemas.find((s) => s.filePath === selectedSchema);
   }, [selectedSchema, prismaInfo]);
+  
+  // Get selected schema file info (if within a folder)
+  const selectedSchemaFileInfo = useMemo(() => {
+      if (!selectedSchemaFile || !selectedSchemaInfo?.files) return null;
+      return selectedSchemaInfo.files.find(f => f.filePath === selectedSchemaFile);
+  }, [selectedSchemaFile, selectedSchemaInfo]);
 
   // Determine if schema dropdown should be shown
   const showSchemaSelector =
     currentView === "schema" &&
     prismaInfo?.detected &&
     prismaInfo.schemas.length > 0;
+    
+  // Determine if schema file dropdown should be shown (only for Schema Folders)
+  const showSchemaFileSelector = 
+    showSchemaSelector && 
+    selectedSchemaInfo?.isSchemaFolder && 
+    selectedSchemaInfo?.files?.length > 0;
 
   // Filter models for search
   const filteredModels = useMemo(() => {
@@ -564,6 +583,70 @@ export default function FloatingTopBar({
                     </div>
                   )}
                 </div>
+              )}
+              
+              {/* Secondary Schema File Dropdown - Only for Schema Folders */}
+              {showSchemaFileSelector && (
+                  <div className="relative" ref={schemaFileRef}>
+                    <button
+                        onClick={() => setShowSchemaFileDropdown(!showSchemaFileDropdown)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-200 border border-white/10"
+                    >
+                        <File className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="max-w-[150px] truncate">
+                            {selectedSchemaFileInfo?.fileName || "All Files"}
+                        </span>
+                        <ChevronDown 
+                            className={`w-3 h-3 transition-transform duration-200 ${
+                                showSchemaFileDropdown ? "rotate-180" : ""
+                            }`}
+                        />
+                    </button>
+                    
+                    {/* Schema File Dropdown Menu */}
+                    {showSchemaFileDropdown && (
+                        <div className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-white/20 backdrop-blur-xl bg-black/90 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] z-50 max-h-60 overflow-y-auto">
+                            <div className="p-2">
+                                {/* Option to show everything */}
+                                <button
+                                    onClick={() => {
+                                        onSchemaFileSelect(null);
+                                        setShowSchemaFileDropdown(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 ${
+                                        selectedSchemaFile === null
+                                            ? "bg-emerald-500/20 text-white"
+                                            : "text-white/80 hover:text-white hover:bg-white/10"
+                                    }`}
+                                >
+                                    <span className="font-semibold text-xs">All Files (Combined)</span>
+                                </button>
+                                
+                                <div className="h-px bg-white/10 my-1" />
+                                
+                                {selectedSchemaInfo.files.map((file) => {
+                                    const isSelected = selectedSchemaFile === file.filePath;
+                                    return (
+                                        <button
+                                            key={file.filePath}
+                                            onClick={() => {
+                                                onSchemaFileSelect(file.filePath);
+                                                setShowSchemaFileDropdown(false);
+                                            }}
+                                            className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 ${
+                                                isSelected
+                                                    ? "bg-emerald-500/20 text-white"
+                                                    : "text-white/80 hover:text-white hover:bg-white/10"
+                                            }`}
+                                        >
+                                            <span className="font-medium text-xs">{file.fileName}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                  </div>
               )}
 
               {/* Model Search Button - Only visible in schema view */}

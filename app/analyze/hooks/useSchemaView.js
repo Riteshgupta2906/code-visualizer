@@ -190,7 +190,8 @@ export function useSchemaView(
   schemaPath,
   prismaInfo,
   viewportWidth,
-  viewportHeight
+  viewportHeight,
+  selectedModel = null
 ) {
   const [schemaData, setSchemaData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -220,6 +221,15 @@ export function useSchemaView(
     }
   };
 
+  // Get list of all models for the dropdown
+  const allModels = useMemo(() => {
+    if (!schemaData?.nodes) return [];
+    return schemaData.nodes
+      .filter((n) => n.data?.modelType === "model")
+      .map((n) => n.data.label)
+      .sort();
+  }, [schemaData]);
+
   // Build graph data from schema with force layout
   const graphData = useMemo(() => {
     if (!schemaData) {
@@ -230,27 +240,79 @@ export function useSchemaView(
       };
     }
 
-    // Apply d3-force layout to position nodes optimally
-    const layoutedNodes = applyForceLayout(
-      schemaData.nodes,
-      schemaData.edges,
-      viewportWidth || 1920,
-      viewportHeight || 1080
-    );
+    // Filter nodes and edges if a model is selected
+    let nodesToRender = schemaData.nodes;
+    let edgesToRender = schemaData.edges;
 
-    console.log("🎨 Schema Analysis Data (after layout):", {
-      nodes: layoutedNodes,
-      edges: schemaData.edges,
-    });
+    if (selectedModel) {
+      // Find the selected node
+      const targetNode = schemaData.nodes.find(
+        (n) => n.data.label === selectedModel
+      );
 
-    return {
-      nodes: layoutedNodes,
-      edges: schemaData.edges, // ✅ Use original edges unchanged
-      nodeTypes: {
-        databaseSchema: SchemaNode,
-      },
-    };
-  }, [schemaData, viewportWidth, viewportHeight]);
+      if (targetNode) {
+        // Find connected edges
+        const connectedEdges = schemaData.edges.filter(
+          (edge) => edge.source === targetNode.id || edge.target === targetNode.id
+        );
+
+        // Find connected nodes (neighbors)
+        const neighborIds = new Set();
+        connectedEdges.forEach((edge) => {
+          neighborIds.add(edge.source);
+          neighborIds.add(edge.target);
+        });
+
+        // Add the target node itself
+        neighborIds.add(targetNode.id);
+
+        // Filter nodes
+        nodesToRender = schemaData.nodes.filter((node) =>
+          neighborIds.has(node.id)
+        );
+        edgesToRender = connectedEdges;
+      }
+    }
+
+    // If a model is selected, we filter and apply force layout to cluster them
+    if (selectedModel) {
+      // Apply d3-force layout ONLY for localized view to position nodes optimally
+      const layoutedNodes = applyForceLayout(
+        nodesToRender,
+        edgesToRender,
+        viewportWidth || 1920,
+        viewportHeight || 1080
+      );
+
+      console.log("🎨 Schema Analysis Data (filtered & forced):", {
+        nodes: layoutedNodes,
+        edges: edgesToRender,
+      });
+
+      return {
+        nodes: layoutedNodes,
+        edges: edgesToRender,
+        nodeTypes: {
+          databaseSchema: SchemaNode,
+        },
+      };
+    } else {
+      // For full view, use the Server-Side Dagre layout positions
+      // We just need to ensure we return the nodes structure correctly
+      console.log("🎨 Schema Analysis Data (using server layout):", {
+        nodes: nodesToRender,
+        edges: edgesToRender,
+      });
+
+      return {
+        nodes: nodesToRender,
+        edges: edgesToRender,
+        nodeTypes: {
+          databaseSchema: SchemaNode,
+        },
+      };
+    }
+  }, [schemaData, viewportWidth, viewportHeight, selectedModel]);
 
   // Node click handler for schema nodes
   const onNodeClick = useCallback((event, node) => {
@@ -283,5 +345,6 @@ export function useSchemaView(
     onNodeClick,
     getNodeColor,
     schemaData,
+    allModels, // Expose all models
   };
 }

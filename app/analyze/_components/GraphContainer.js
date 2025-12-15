@@ -14,6 +14,7 @@ import { useSchemaView } from "../hooks/useSchemaView";
 import FloatingTopBar from "./ProjectSideBar/sideBar";
 import ProjectInfoPanel from "./ProjectSideBar/projectInfoPanel";
 import FileCodeViewer from "./ProjectSideBar/FileCodePreview";
+import SchemaLegend from "./SchemaLegend";
 import { LoadingOverlay } from "./LoadingOverlay";
 import "@xyflow/react/dist/style.css";
 
@@ -24,6 +25,7 @@ export default function GraphContainer({
 }) {
   const [currentView, setCurrentView] = useState("dependency");
   const [selectedSchema, setSelectedSchema] = useState(null);
+  const [selectedModel, setSelectedModel] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [fileContent, setFileContent] = useState(null);
   const [loadingFile, setLoadingFile] = useState(false);
@@ -74,7 +76,7 @@ export default function GraphContainer({
     filteredData?.data?.structure,
     analysisData?.data?.dependencyMap
   );
-  const schemaView = useSchemaView(selectedSchema, prismaInfo);
+  const schemaView = useSchemaView(selectedSchema, prismaInfo, undefined, undefined, selectedModel);
 
   // Get active view data
   const activeView = useMemo(() => {
@@ -159,6 +161,11 @@ export default function GraphContainer({
   // Handle schema selection
   const handleSchemaSelect = useCallback((schemaPath) => {
     setSelectedSchema(schemaPath);
+    setSelectedModel(null); // Reset model selection when schema changes
+  }, []);
+
+  const handleModelSelect = useCallback((modelName) => {
+    setSelectedModel(modelName);
   }, []);
 
   // ReactFlow state
@@ -291,6 +298,9 @@ export default function GraphContainer({
           allExpanded={dependencyView.allExpanded}
           onExpandAll={dependencyView.expandAll}
           onCollapseAll={dependencyView.collapseAll}
+          allModels={schemaView.allModels}
+          selectedModel={selectedModel}
+          onModelSelect={handleModelSelect}
         />
 
         {/* Project Info Panel - Pass schema stats when in schema view */}
@@ -305,6 +315,9 @@ export default function GraphContainer({
             currentView === "schema" ? schemaView.schemaData?.fileName : null
           }
         />
+
+        {/* Schema Legend */}
+        {currentView === "schema" && <SchemaLegend />}
 
         {/* MiniMap */}
         <MiniMap

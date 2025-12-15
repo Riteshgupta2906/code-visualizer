@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Code Eye
 
-## Getting Started
+**Code Eye** is a powerful Next.js Code Visualizer designed to help developers understand complex application structures and database schemas at a glance. It provides interactive visualizations for Next.js App Router projects and Prisma schemas, making it easier to analyze dependencies, routing patterns, and data models.
 
-First, run the development server:
+## 🚀 Key Features
+
+- **Dependency Visualization**: comprehensive graph of your project's file dependencies using recursive directory scanning.
+- **Reverse Dependency Analysis**: Instantly see "Imported By" relationships to understand the impact of changes.
+- **Next.js App Router Support**: Automatically detects and categorizes App Router conventions (Pages, Layouts, API Routes, Route Groups, etc.).
+- **Prisma Schema Visualization**: Interactive ER diagram generation from your `schema.prisma` files using `@prisma/internals`.
+- **Git Integration**: View repository details, current branch, and latest commit information directly in the dashboard.
+- **Interactive Graphs**: Powered by **React Flow** with custom node types and layout algorithms.
+
+## 🛠️ Important Packages
+
+This project relies on several key open-source libraries to deliver its functionality:
+
+- **Core Framework**: `next`, `react`, `tailwindcss`
+- **Visualization**:
+  - `@xyflow/react` (React Flow): For rendering the interactive node-based graphs.
+  - `d3` & `d3-force`: For physics-based graph layout simulations.
+  - `elkjs`: For advanced layered graph layouts (entity-relationship diagrams).
+- **Analysis Engine**:
+  - `@babel/parser` & `@babel/traverse`: For parsing JavaScript/TypeScript ASTs to extract imports and exports.
+  - `@prisma/internals`: specifically `getDMMF` (Data Model Meta Format) is used to parse `schema.prisma` files into structured objects.
+  - `simple-git`: For extracting repository metadata.
+- **UI Components**:
+  - `framer-motion`: For fluid animations and transitions.
+  - `lucide-react`: For iconography.
+  - `@radix-ui/*`: For accessible UI primitives.
+
+## ⚙️ How It Works
+
+### Dependency Analysis
+The dependency analyzer (`lib/analyzers/project-analyzer.js` & `dependency-analyzer.js`) works by:
+1.  **Scanning**: Recursively walks through your project directory using `fast-glob`.
+2.  **Parsing**: Reads each file and uses Babel's AST parser to identify `import` declarations and `export` statements.
+3.  **Resolution**: Resolves path aliases (like `@/components`) and relative paths to absolute file locations.
+4.  **Graph Building**: Constructs a bidirectional graph where nodes represent files and edges represent imports.
+
+### Prisma Schema Visualization
+The schema analyzer (`app/api/analyze-schema/route.js`) processes your Prisma files:
+1.  **Parsing**: Uses Prisma's internal SDK to convert the raw schema into a DMMF object.
+2.  **Transformation**: Maps models and enums to React Flow nodes (`databaseSchema` type).
+3.  **Relation Linking**: Identifies relationships (1:1, 1:N, N:N) and creates edges with appropriate labels and foreign key details.
+
+### Graph Rendering
+The visualizations are rendered using **React Flow**, but with a custom layer of intelligence:
+-   **Custom Nodes**: `DependencyNode` and `SchemaNode` components render rich details like file types, stats, and database columns.
+-   **Layout Management**: Uses a combination of Dagre (for hierarchical layouts) and D3 Force (for organic clusters) to ensure the graph is readable and organized.
+
+## 📦 Installation & Use
+
+Clone the project and install dependencies to get started.
 
 ```bash
+# Clone the repository
+git clone https://github.com/Riteshgupta2906/code-visualizer.git
+
+# Navigate into the directory
+cd code-visualizer
+
+# Install dependencies
+npm install
+
+# Run the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+You can analyze a project in two ways:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1.  **Local Path**: Enter the absolute path of a local Next.js project.
+    -   *Tip*: Navigate to the project folder in your terminal and run `pwd` to get the full path, then paste it.
+2.  **GitHub URL**: Enter the URL of any public GitHub repository (e.g., `https://github.com/vercel/next.js`). Code Eye will clone and analyze it automatically.
 
-## Learn More
+## 🔮 Future Roadmap
 
-To learn more about Next.js, take a look at the following resources:
+We are constantly working to improve Code Eye. Here is what's coming next:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+-   **VS Code Extension**: Bring the power of Code Eye directly into your editor for seamless context switching.
+-   **API Call Visualization**: specialized graph layer to visualize HTTP requests and API interactions within your app.
+-   **Multi-Project Support**: Ability to analyze and switch between multiple projects without restarting the server.

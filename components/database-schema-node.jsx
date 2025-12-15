@@ -84,19 +84,24 @@ export const FieldWithHandle = ({
 }) => {
   const variantStyles = {
     relation: {
-      text: "text-white/80",
-      border: "border-l-cyan-400/40",
-      bg: "bg-cyan-500/10 hover:bg-cyan-500/15",
+      text: "text-blue-200",
+      border: "border-l-blue-400/60",
+      bg: "bg-blue-500/20 hover:bg-blue-500/30",
     },
     enum: {
-      text: "text-white/80",
-      border: "border-l-purple-400/40",
-      bg: "bg-purple-500/10 hover:bg-purple-500/15",
+      text: "text-fuchsia-200",
+      border: "border-l-fuchsia-400/60",
+      bg: "bg-fuchsia-500/20 hover:bg-fuchsia-500/30",
     },
     primary: {
-      text: "text-white",
-      border: "border-l-emerald-400/50",
-      bg: "bg-emerald-500/10 hover:bg-emerald-500/15",
+      text: "text-amber-200",
+      border: "border-l-amber-400/60",
+      bg: "bg-amber-500/20 hover:bg-amber-500/30",
+    },
+    unique: {
+      text: "text-violet-200",
+      border: "border-l-violet-400/60",
+      bg: "bg-violet-500/20 hover:bg-violet-500/30",
     },
   };
 
@@ -300,10 +305,12 @@ export const SchemaFieldRow = ({
   const variants = {
     default: "hover:bg-white/10",
     relation:
-      "bg-cyan-500/10 hover:bg-cyan-500/15 border-l-2 border-l-cyan-400/40 hover:border-l-cyan-400/60",
-    enum: "bg-purple-500/10 hover:bg-purple-500/15 border-l-2 border-l-purple-400/40 hover:border-l-purple-400/60",
+      "bg-blue-500/20 hover:bg-blue-500/30 border-l-2 border-l-blue-400/60 hover:border-l-blue-400/80",
+    enum: "bg-fuchsia-500/20 hover:bg-fuchsia-500/30 border-l-2 border-l-fuchsia-400/60 hover:border-l-fuchsia-400/80",
     primary:
-      "bg-emerald-500/10 hover:bg-emerald-500/15 border-l-2 border-l-emerald-400/50 hover:border-l-emerald-400/70",
+      "bg-amber-500/20 hover:bg-amber-500/30 border-l-2 border-l-amber-400/60 hover:border-l-amber-400/80",
+    unique:
+      "bg-violet-500/20 hover:bg-violet-500/30 border-l-2 border-l-violet-400/60 hover:border-l-violet-400/80",
   };
 
   return (

@@ -16,6 +16,8 @@ import {
   Database,
   Network,
   Info,
+  Search,
+  X,
 } from "lucide-react";
 import { Panel, useViewport, useStore, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
@@ -107,6 +109,9 @@ export default function FloatingTopBar({
   onSchemaSelect = () => {},
   prismaInfo = null,
   gitInfo = null,
+  allModels = [],
+  selectedModel = null,
+  onModelSelect = () => {},
 }) {
   //  console.log("structure prop:", structure);
   const [showBreadcrumbMenu, setShowBreadcrumbMenu] = useState(false);
@@ -114,10 +119,14 @@ export default function FloatingTopBar({
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showSchemaDropdown, setShowSchemaDropdown] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showModelSearch, setShowModelSearch] = useState(false);
+  const [modelSearchQuery, setModelSearchQuery] = useState("");
   const breadcrumbRef = useRef(null);
   const layoutRef = useRef(null);
   const schemaRef = useRef(null);
   const infoRef = useRef(null);
+  const modelSearchRef = useRef(null);
+  const modelSearchInputRef = useRef(null);
 
   // ReactFlow hooks
   const { zoom } = useViewport();
@@ -168,11 +177,26 @@ export default function FloatingTopBar({
       if (infoRef.current && !infoRef.current.contains(event.target)) {
         setShowInfo(false);
       }
+      if (
+        modelSearchRef.current &&
+        !modelSearchRef.current.contains(event.target)
+      ) {
+        setShowModelSearch(false);
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Focus search input when model search dropdown opens
+  useEffect(() => {
+    if (showModelSearch && modelSearchInputRef.current) {
+      setTimeout(() => {
+        modelSearchInputRef.current.focus();
+      }, 50);
+    }
+  }, [showModelSearch]);
 
   const viewOptions = [
     {
@@ -212,6 +236,14 @@ export default function FloatingTopBar({
     currentView === "schema" &&
     prismaInfo?.detected &&
     prismaInfo.schemas.length > 0;
+
+  // Filter models for search
+  const filteredModels = useMemo(() => {
+    if (!modelSearchQuery) return allModels;
+    return allModels.filter((model) =>
+      model.toLowerCase().includes(modelSearchQuery.toLowerCase())
+    );
+  }, [allModels, modelSearchQuery]);
 
   return (
     <>
@@ -352,7 +384,7 @@ export default function FloatingTopBar({
                             </span>
                           </div>
                           <p className="text-xs text-white/80 line-clamp-2 italic">
-                            "{gitInfo.latestCommit.message}"
+                            {gitInfo.latestCommit.message}
                           </p>
                           <div className="flex items-center gap-1.5 text-[10px] text-gray-400 border-t border-white/5 pt-2 mt-1">
                             <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-[8px] text-white font-bold uppercase">
@@ -412,7 +444,7 @@ export default function FloatingTopBar({
                   {currentViewOption && (
                     <currentViewOption.icon className="w-3.5 h-3.5" />
                   )}
-                  <span>Layout</span>
+                  <span>{currentViewOption?.label || "Layout"}</span>
                   <ChevronDown
                     className={`w-3 h-3 transition-transform duration-200 ${
                       showLayoutMenu ? "rotate-180" : ""
@@ -528,6 +560,83 @@ export default function FloatingTopBar({
                             </button>
                           );
                         })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Model Search Button - Only visible in schema view */}
+              {showSchemaSelector && (
+                <div className="relative" ref={modelSearchRef}>
+                  <button
+                    onClick={() => setShowModelSearch(!showModelSearch)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium backdrop-blur-sm rounded-lg transition-all duration-200 border border-white/10 ${
+                      selectedModel
+                        ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                        : "text-white/80 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    <span className="max-w-[120px] truncate">
+                      {selectedModel || "Search Models"}
+                    </span>
+                    {selectedModel && (
+                      <div
+                        role="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onModelSelect(null);
+                        }}
+                        className="ml-1 p-0.5 rounded-full hover:bg-white/20 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Model Search Dropdown */}
+                  {showModelSearch && (
+                    <div className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-white/20 backdrop-blur-xl bg-black/90 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] z-50">
+                      <div className="p-2">
+                        {/* Search Input */}
+                        <div className=" px-2 pb-2 border-b border-white/10">
+                          <input
+                            ref={modelSearchInputRef}
+                            type="text"
+                            placeholder="Find a model..."
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                            value={modelSearchQuery}
+                            onChange={(e) => setModelSearchQuery(e.target.value)}
+                          />
+                        </div>
+
+                        {/* Models List */}
+                        <div className="mt-1 max-h-60 overflow-y-auto">
+                          {filteredModels.length > 0 ? (
+                            filteredModels.map((model) => (
+                              <button
+                                key={model}
+                                onClick={() => {
+                                  onModelSelect(model);
+                                  setShowModelSearch(false);
+                                  setModelSearchQuery(""); // Optional: clear query after selection
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                  selectedModel === model
+                                    ? "bg-blue-500/20 text-blue-300"
+                                    : "text-white/70 hover:text-white hover:bg-white/10"
+                                }`}
+                              >
+                                {model}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-4 text-center text-xs text-white/40">
+                              No models found
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

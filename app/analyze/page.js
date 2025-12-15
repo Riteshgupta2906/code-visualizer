@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,49 @@ import {
   Activity,
 } from "lucide-react";
 
-export default function AnalyzePage() {
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-black relative overflow-hidden flex items-center justify-center">
+      {/* Ambient Background Gradient */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-900/20 blur-[120px] -z-10 rounded-full pointer-events-none" />
+
+      <div className="text-center space-y-8 relative z-10">
+        {/* Animated Logo/Icon */}
+        <div className="relative inline-flex">
+          {/* Main Glow Effect */}
+          <div className="absolute -inset-4 bg-blue-600/40 blur-[40px] rounded-full opacity-80"></div>
+          
+          <div className="relative w-20 h-20 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
+            <Loader2 className="w-10 h-10 text-white animate-spin" />
+          </div>
+        </div>
+
+        {/* Loading Text */}
+        <div className="space-y-3">
+          <h2 className="text-3xl font-bold text-white">
+            Analyzing Next.js Project
+          </h2>
+          <p className="text-gray-400 text-lg font-light max-w-md mx-auto">
+            Scanning App Router structure, API routes, and routing patterns...
+          </p>
+        </div>
+
+        {/* Status Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900/50 border border-gray-800 backdrop-blur-sm">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+          <span className="text-sm font-medium text-gray-400">
+            Detecting HTTP methods in route files
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AnalyzeContent() {
   const searchParams = useSearchParams();
   const projectPath = searchParams.get("path");
   const [analysisData, setAnalysisData] = useState(null);
@@ -116,47 +158,9 @@ export default function AnalyzePage() {
 
   const projectStats = getProjectStats();
 
- if (loading) {
-  return (
-    <div className="min-h-screen bg-black relative overflow-hidden flex items-center justify-center">
-      {/* Ambient Background Gradient */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-900/20 blur-[120px] -z-10 rounded-full pointer-events-none" />
-
-      <div className="text-center space-y-8 relative z-10">
-        {/* Animated Logo/Icon */}
-        <div className="relative inline-flex">
-          {/* Main Glow Effect */}
-          <div className="absolute -inset-4 bg-blue-600/40 blur-[40px] rounded-full opacity-80"></div>
-          
-          <div className="relative w-20 h-20 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
-            <Loader2 className="w-10 h-10 text-white animate-spin" />
-          </div>
-        </div>
-
-        {/* Loading Text */}
-        <div className="space-y-3">
-          <h2 className="text-3xl font-bold text-white">
-            Analyzing Next.js Project
-          </h2>
-          <p className="text-gray-400 text-lg font-light max-w-md mx-auto">
-            Scanning App Router structure, API routes, and routing patterns...
-          </p>
-        </div>
-
-        {/* Status Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900/50 border border-gray-800 backdrop-blur-sm">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-          </span>
-          <span className="text-sm font-medium text-gray-400">
-            Detecting HTTP methods in route files
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
+  if (loading) {
+    return <LoadingState />;
+  }
 
   if (error) {
     return (
@@ -243,5 +247,13 @@ export default function AnalyzePage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function AnalyzePage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <AnalyzeContent />
+    </Suspense>
   );
 }

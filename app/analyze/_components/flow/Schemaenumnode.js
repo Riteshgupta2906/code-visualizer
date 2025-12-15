@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Database, Key, Star, Tag, Link, List } from "lucide-react";
+import { Database, List } from "lucide-react";
 import { Position } from "@xyflow/react";
 import {
   ConnectionHandle,
@@ -20,18 +20,11 @@ import {
 const SchemaNode = memo(({ data }) => {
   const isEnum = data.modelType === "enum";
 
-  const getFieldIcon = (field) => {
-    if (field.isId) return <Key className="w-3 h-3 text-amber-400" />;
-    if (field.isUnique) return <Star className="w-3 h-3 text-amber-300" />;
-    if (field.isEnum) return <Tag className="w-3 h-3 text-purple-400" />;
-    if (field.isRelation) return <Link className="w-3 h-3 text-blue-400" />;
-    return null;
-  };
-
   const getFieldVariant = (field) => {
     if (field.isRelation) return "relation";
     if (field.isEnum) return "enum";
     if (field.isId) return "primary";
+    if (field.isUnique) return "unique";
     return "default";
   };
 
@@ -67,7 +60,6 @@ const SchemaNode = memo(({ data }) => {
                 id={field.handleId}
                 name={field.title}
                 type={field.type}
-                icon={getFieldIcon(field)}
                 variant={getFieldVariant(field)}
               />
             ) : needsTargetHandle(field) ? (
@@ -80,11 +72,13 @@ const SchemaNode = memo(({ data }) => {
                     id={`${field.handleId}-target`}
                     className="flex-shrink-0"
                   />
-                  <SchemaFieldName icon={getFieldIcon(field)}>
+                  <SchemaFieldName>
                     <span
                       className={
                         field.isId
-                          ? "text-amber-300 font-semibold"
+                          ? "text-amber-200 font-semibold"
+                          : field.isUnique
+                          ? "text-violet-200 font-medium"
                           : "text-slate-300"
                       }
                     >
@@ -97,7 +91,7 @@ const SchemaNode = memo(({ data }) => {
             ) : (
               // ✅ Regular fields without any handles
               <>
-                <SchemaFieldName icon={getFieldIcon(field)}>
+                <SchemaFieldName>
                   <span className="text-slate-300">{field.title}</span>
                 </SchemaFieldName>
                 <SchemaFieldType>{field.type}</SchemaFieldType>

@@ -26,7 +26,7 @@ npm run dev`;
       />
 
       {/* Black Hole Background */}
-      <div className="absolute inset-0 max-w-8xl mx-auto h-full pointer-events-none z-10 flex justify-center -translate-y-14">
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-10 flex justify-center -translate-y-14">
         <div className="w-full h-full relative">
             <BlackHole 
             videoSrc="black-hole.webm" 
@@ -64,7 +64,7 @@ npm run dev`;
              >
               <TypingAnimation duration={20} delay={500} className="text-gray-100 font-mono">$ git clone https://github.com/Riteshgupta2906/code-visualizer.git</TypingAnimation>
               
-              <AnimatedSpan delay={1500} className="text-gray-400 font-mono">Cloning into 'code-visualizer'...</AnimatedSpan>
+              <AnimatedSpan delay={1500} className="text-gray-400 font-mono">{`Cloning into 'code-visualizer'...`}</AnimatedSpan>
               <AnimatedSpan delay={1600} className="text-gray-400 font-mono">remote: Enumerating objects: 155, done.</AnimatedSpan>
               <AnimatedSpan delay={1700} className="text-gray-400 font-mono">remote: Counting objects: 100% (155/155), done.</AnimatedSpan>
               <AnimatedSpan delay={2000} className="text-gray-400 font-mono">Receiving objects: 100% (155/155), 211.40 KiB | 2.30 MiB/s, done.</AnimatedSpan>

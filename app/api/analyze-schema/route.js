@@ -1,8 +1,8 @@
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { getDMMF } from "@prisma/internals";
-import dagre from "dagre";
 import fs from "fs/promises";
+import * as d3 from "d3";
 
 export async function POST(request) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request) {
     const { nodes, edges } = transformToGraph(dmmf.datamodel);
 
     // Apply layout
-    const layoutedNodes = applyDagreLayout(nodes, edges);
+    const layoutedNodes = applyForceLayout(nodes, edges);
 
     // Calculate comprehensive statistics
     const stats = calculateComprehensiveStats(dmmf.datamodel, nodes, edges);
@@ -578,10 +578,11 @@ function createRelationEdge(model, field, allModels, processedRelations) {
     sourceHandle, // ✅ Now matches: ModelName.fieldName-source
     targetHandle, // ✅ Now matches: TargetModel.idField-target
     type: "smoothstep",
-    animated: false,
+    animated: true,
     style: {
-      stroke: "#3b82f6",
+      stroke: "#9ca3af", // Grey
       strokeWidth: 2,
+      strokeDasharray: "5, 5",
     },
     label: edgeLabel,
     labelStyle: {
@@ -650,50 +651,165 @@ function createEnumEdge(model, field) {
 }
 
 /**
- * Apply Dagre layout
+ * Apply ELK layout (better for entity-relationship diagrams)
  */
-function applyDagreLayout(nodes, edges) {
-  const dagreGraph = new dagre.graphlib.Graph();
+/**
+ * Apply Custom Force Layout
+ * Strategy: "Horizontal Backbone"
+ * 1. Identify highly connected nodes (Hubs).
+ * 2. Place Hubs in a horizontal line.
+ * 3. Let other nodes cluster around them using force simulation.
+ */
+/**
+ * Apply Directed Force Layout
+ * Strategy: "Directed Flow" (Left-to-Right)
+ * 1. Assign "Levels" to nodes based on dependencies (Topological/BFS).
+ * 2. Enforce X-coordinates based on Level.
+ * 3. Allow Y-coordinates to float for spacing.
+ */
+function applyForceLayout(nodes, edges) {
+  const simulationNodes = nodes.map((n) => {
+    // Calculate accurate height
+    const fieldCount = n.data.schema.length;
+    const constraintCount = n.data.constraints?.length || 0;
+    const indexCount =
+      (n.data.uniqueIndexes?.length || 0) + (n.data.indexes?.length || 0);
 
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({
-    rankdir: "LR", // Left to right
-    ranksep: 250, // Spacing between ranks
-    nodesep: 150, // Spacing between nodes
-    edgesep: 50, // Spacing for edges
-    marginx: 50,
-    marginy: 50,
+    const baseHeight = 124;
+    const fieldHeight = fieldCount * 44;
+    const constraintHeight =
+      constraintCount > 0 ? constraintCount * 32 + 40 : 0;
+    const indexHeight = indexCount > 0 ? indexCount * 32 + 40 : 0;
+
+    return {
+      id: n.id,
+      width: 320,
+      height: Math.max(180, baseHeight + fieldHeight + constraintHeight + indexHeight),
+      x: 0,
+      y: 0,
+    };
   });
 
-  nodes.forEach((node) => {
-    const fieldCount = node.data.schema.length;
-    const constraintCount = node.data.constraints?.length || 0;
+  const simulationEdges = edges.map((e) => ({
+    source: e.source,
+    target: e.target,
+    id: e.id,
+  }));
 
-    // Calculate dynamic height based on content
-    const baseHeight = 80;
-    const fieldHeight = fieldCount * 36;
-    const constraintHeight = constraintCount * 24;
-
-    const width = 320;
-    const height = Math.max(180, baseHeight + fieldHeight + constraintHeight);
-
-    dagreGraph.setNode(node.id, { width, height });
+  // 1. Build Adjacency List & Indegree
+  const adj = new Map();
+  const inDegree = new Map();
+  simulationNodes.forEach(n => {
+    adj.set(n.id, []);
+    inDegree.set(n.id, 0);
   });
 
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+  simulationEdges.forEach(e => {
+    adj.get(e.source).push(e.target);
+    inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
   });
 
-  dagre.layout(dagreGraph);
+  // 2. Assign Levels (BFS)
+  const levels = new Map();
+  const queue = [];
+  
+  // Find roots (nodes with 0 incoming edges)
+  simulationNodes.forEach(n => {
+    if ((inDegree.get(n.id) || 0) === 0) {
+      levels.set(n.id, 0);
+      queue.push(n.id);
+    }
+  });
 
+  // If no roots (circular graph), pick the node with max outgoing edges
+  if (queue.length === 0 && simulationNodes.length > 0) {
+    const fallbackRoot = simulationNodes.sort((a,b) => adj.get(b.id).length - adj.get(a.id).length)[0];
+    levels.set(fallbackRoot.id, 0);
+    queue.push(fallbackRoot.id);
+  }
+
+  // Process queue
+  const visited = new Set(queue);
+  while (queue.length > 0) {
+    const currId = queue.shift();
+    const currLevel = levels.get(currId);
+    
+    adj.get(currId).forEach(neighborId => {
+      if (!visited.has(neighborId)) {
+        levels.set(neighborId, currLevel + 1);
+        visited.add(neighborId);
+        queue.push(neighborId);
+      }
+    });
+  }
+
+  // Handle disconnected components / cycles
+  simulationNodes.forEach(n => {
+    if (!levels.has(n.id)) {
+      levels.set(n.id, 1); // Default to level 1 if unreached
+    }
+  });
+
+  // 3. Configure Force Simulation
+  // Group by level for initial Y positioning to reduce chaos
+  const levelCounts = new Map();
+  simulationNodes.forEach(n => {
+    const lvl = levels.get(n.id);
+    n.initialY = (levelCounts.get(lvl) || 0) * 300; // Stagger vertical start
+    levelCounts.set(lvl, (levelCounts.get(lvl) || 0) + 1);
+    
+    // Set initial X based on level immediately
+    n.x = lvl * 500;
+    n.y = n.initialY; 
+  });
+
+  const simulation = d3
+    .forceSimulation(simulationNodes)
+    // Link force: Pull connected nodes together but respect level distance
+    .force(
+      "link",
+      d3
+        .forceLink(simulationEdges)
+        .id((d) => d.id)
+        .distance(200) 
+        .strength(0.5)
+    )
+    // Charge: Push nodes apart
+    .force(
+      "charge",
+      d3.forceManyBody().strength(-2500).distanceMax(2000)
+    )
+    // Collision: Prevent overlap
+    .force(
+      "collision",
+      d3
+        .forceCollide()
+        .radius((d) => Math.max(d.width, d.height) / 2 + 100)
+        .strength(1)
+    )
+    // Force X: Enforce the "Level" structure strictly
+    .force(
+        "x",
+        d3.forceX((d) => {
+            const lvl = levels.get(d.id);
+            return lvl * 500; // 500px per level
+        }).strength(2.0) // Strong strength to lock columns
+    )
+    // Force Y: Gentle centering
+    .force("y", d3.forceY(0).strength(0.05));
+
+  // Run simulation
+  simulation.tick(300);
+  simulation.stop();
+
+  // 4. Apply positions back
   return nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-
+    const layoutNode = simulationNodes.find((n) => n.id === node.id);
     return {
       ...node,
       position: {
-        x: nodeWithPosition.x - nodeWithPosition.width / 2,
-        y: nodeWithPosition.y - nodeWithPosition.height / 2,
+        x: layoutNode.x - layoutNode.width / 2,
+        y: layoutNode.y - layoutNode.height / 2,
       },
     };
   });

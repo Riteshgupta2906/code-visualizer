@@ -1,5 +1,11 @@
 # Code Eye
 
+<div align="center">
+  <video src="public/demo.mp4" width="100%" controls></video> 
+  <br/>
+  <a href="public/demo.mp4">Watch Demo</a>
+</div>
+
 **Code Eye** is a powerful Next.js Code Visualizer designed to help developers understand complex application structures and database schemas at a glance. It provides interactive visualizations for Next.js App Router projects and Prisma schemas, making it easier to analyze dependencies, routing patterns, and data models.
 
 ## 🚀 Key Features

@@ -4,13 +4,37 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowRight, Folder, Github, ChevronDown, ExternalLink } from "lucide-react";
+import { Loader2, ArrowRight, Folder, Github, ChevronDown, ExternalLink, Sparkles, Code2 } from "lucide-react";
 
 const HOSTED_REPOS = [
-  { name: "Munia", url: "https://github.com/leandronorcio/munia.git" },
-  { name: "Dub.co", url: "https://github.com/dubinc/dub.git" },
-  { name: "Papermark", url: "https://github.com/mfts/papermark.git" },
-  { name: "Inbox Zero", url: "https://github.com/elie222/inbox-zero.git" },
+  { 
+    name: "Formbricks", 
+    description: "Open source survey platform & experience management",
+    url: "https://github.com/formbricks/formbricks.git",
+    // highlight: true
+  },
+   { 
+    name: "Dub.co", 
+    description: "Open-source link management infrastructure",
+    url: "https://github.com/dubinc/dub.git" 
+  },
+  { 
+    name: "Papermark", 
+    description: "Open-source document sharing alternative to DocSend",
+    url: "https://github.com/mfts/papermark.git" 
+  },
+  { 
+    name: "Inbox Zero", 
+    description: "Open source email app for newsletter cleaning",
+    url: "https://github.com/elie222/inbox-zero.git" 
+  },
+  { 
+    name: "Munia", 
+    description: "Next.js App Router & Prisma starter",
+    url: "https://github.com/leandronorcio/munia.git" 
+  },
+ 
+ 
 ];
 
 export default function ProjectInput() {
@@ -40,7 +64,32 @@ export default function ProjectInput() {
 
     setIsAnalyzing(true);
     setError("");
-    router.push(`/analyze?path=${encodeURIComponent(inputValue.trim())}`);
+
+    try {
+      // Pre-validate by calling the API. This ensures we catch private repo errors
+      // or invalid paths BEFORE navigating to the analyze page.
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ projectPath: inputValue.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to access repository");
+      }
+
+      // If successful, the repo is cloned/verified and cached.
+      // We can now safely navigate.
+      router.push(`/analyze?path=${encodeURIComponent(inputValue.trim())}`);
+      
+    } catch (err) {
+      setError(err.message);
+      setIsAnalyzing(false);
+    }
   };
 
   const handleTypeSelect = (type) => {
@@ -200,6 +249,72 @@ export default function ProjectInput() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
+      {/* Suggested Repos Section */}
+      <div className="pt-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+        <div className="flex items-center gap-2 mb-6 justify-center text-gray-400">
+          <Sparkles className="w-4 h-4 text-purple-400" />
+          <span className="text-sm font-medium">You can try these repos that use Next App routing and Prisma</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {HOSTED_REPOS.map((repo) => (
+            <div
+              key={repo.url}
+              className={`relative group overflow-hidden rounded-xl border p-5 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-900/20 ${
+                repo.highlight 
+                  ? 'bg-gradient-to-br from-purple-900/20 to-black/80 border-purple-500/30 md:col-span-2' 
+                  : 'bg-black/40 border-white/5 hover:border-purple-500/20'
+              }`}
+            >
+              {repo.highlight && (
+                 <div className="absolute top-0 right-0 p-3">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                      Top Pick
+                    </span>
+                 </div>
+              )}
+
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h3 className={`font-semibold mb-1 flex items-center gap-2 ${repo.highlight ? 'text-white text-lg' : 'text-gray-200'}`}>
+                    {repo.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 line-clamp-2">
+                    {repo.description}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 mt-auto">
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        handleRepoSelect(repo.url);
+                        setInputType("github");
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      variant="secondary"
+                      className="bg-purple-600/10 text-purple-300 hover:bg-purple-600/20 hover:text-purple-200 border border-purple-500/20 h-9 text-xs"
+                    >
+                      <Code2 className="w-3.5 h-3.5 mr-1.5" />
+                      Open on Code Eye
+                    </Button>
+
+                    <Button
+                      type="button"
+                      onClick={() => window.open(repo.url, "_blank")}
+                      variant="ghost" 
+                      className="text-gray-400 hover:text-white hover:bg-white/5 h-9 text-xs"
+                    >
+                      <Github className="w-3.5 h-3.5 mr-1.5" />
+                      Open on GitHub
+                    </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

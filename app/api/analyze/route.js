@@ -57,12 +57,17 @@ export async function POST(request) {
   } catch (error) {
     console.error("Analysis error:", error);
 
+    const isPrivateRepo = error.message.includes("PRIVATE_REPO_ACCESS_DENIED");
+    
     return NextResponse.json(
       {
-        error: error.message || "Failed to analyze project",
+        error: isPrivateRepo 
+          ? "This appears to be a private repository. Code Eye can only access public repositories directly. Please clone it locally first." 
+          : (error.message || "Failed to analyze project"),
+        isPrivateRepo: isPrivateRepo,
         success: false,
       },
-      { status: 500 }
+      { status: isPrivateRepo ? 403 : 500 }
     );
   }
 }

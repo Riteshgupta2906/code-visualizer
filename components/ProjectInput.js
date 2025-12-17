@@ -118,14 +118,14 @@ export default function ProjectInput() {
         {/* Glow effect behind input bar */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
 
-        <div className="relative flex items-center bg-black/80 backdrop-blur-xl border border-gray-800 rounded-xl p-1.5 shadow-2xl">
+        <div className="relative flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-0 bg-black/80 backdrop-blur-xl border border-gray-800 rounded-xl p-3 md:p-1.5 shadow-2xl">
           {/* Hosted Mode UI: Only Dropdown */}
           {isHostedMode ? (
             <div className="relative flex-1">
               <button
                 type="button"
                 onClick={() => setIsRepoDropdownOpen(!isRepoDropdownOpen)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-gray-200 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors min-w-[300px]"
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-gray-200 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors md:min-w-[300px]"
               >
                  <div className="flex items-center gap-2">
                     <Github className="w-4 h-4 text-purple-400" />
@@ -155,11 +155,11 @@ export default function ProjectInput() {
             /* Standard Mode UI */
             <>
               {/* Custom Dropdown */}
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-200 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors border-r border-gray-800 mr-2 min-w-[140px]"
+                  className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 px-4 py-3 text-sm font-medium text-gray-200 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors border-b md:border-b-0 md:border-r border-gray-800 md:mr-2 md:min-w-[140px]"
                 >
                   {inputType === "local" ? (
                     <>
@@ -206,7 +206,7 @@ export default function ProjectInput() {
                 placeholder={inputType === "local" 
                   ? "/Users/username/projects/my-app" 
                   : "https://github.com/username/repo"}
-                className="flex-1 bg-transparent border-none text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-0 px-2 text-base h-full"
+                className="flex-1 bg-transparent border-none text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-0 px-2 text-base h-12 md:h-full min-h-[44px]"
                 disabled={isAnalyzing}
               />
             </>
@@ -214,28 +214,40 @@ export default function ProjectInput() {
 
           {/* Open on Github Button */}
           {inputValue && (inputType === 'github' || inputValue.startsWith('http')) && (
+                <div className="flex flex-col md:flex-row gap-2 mt-2 md:mt-0">
                <Button
                 type="button"
                 variant="ghost" 
                 size="icon"
                 onClick={openOnGithub}
-                className="mr-2 text-gray-400 hover:text-white"
+                className="hidden md:flex mr-2 text-gray-400 hover:text-white shrink-0"
                 title="Open repository"
                >
                    <ExternalLink className="w-4 h-4" />
                </Button>
+               {/* Mobile only text link version */}
+                <Button
+                type="button"
+                variant="ghost" 
+                onClick={openOnGithub}
+                className="flex md:hidden w-full text-gray-400 hover:text-white justify-center items-center gap-2 h-10 border border-gray-800 rounded-lg mb-2"
+               >
+                   <ExternalLink className="w-4 h-4" />
+                   <span className="text-sm">View on GitHub</span>
+               </Button>
+               </div>
           )}
 
           {/* Analyze Button */}
           <Button
             type="submit"
             disabled={isAnalyzing}
-            className="h-11 px-6 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-lg shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="h-11 px-6 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-medium rounded-lg shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] w-full md:w-auto mt-2 md:mt-0"
           >
             {isAnalyzing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <span className="flex items-center gap-2">
+              <span className="flex items-center justify-center gap-2">
                 Analyze
                 <ArrowRight className="w-4 h-4" />
               </span>
